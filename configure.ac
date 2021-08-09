@@ -238,10 +238,20 @@ AC_SEARCH_LIBS(gethostbyname, nsl)
 
 tryshenangodir=""
 AC_ARG_WITH(shenango,
-       [  --with-shenango=PATH     Specify path to shenango installation ],
+       [  --with-shenango=PATH      Specify path to shenango installation ],
        [
                 if test "x$withval" != "xno" ; then
                         tryshenangodir=$withval
+                fi
+       ]
+)
+
+trykonadir=""
+AC_ARG_WITH(kona,
+       [  --with-kona=PATH          Specify path to kona repo/installation  ],
+       [
+                if test "x$withval" != "xno" ; then
+                        trykonadir=$withval
                 fi
        ]
 )
@@ -311,6 +321,90 @@ if test $ac_cv_shenango_dir != "(system)"; then
     CPPFLAGS="-I$ac_cv_shenango_dir/inc $CPPFLAGS"
   else
     CPPFLAGS="-I$ac_cv_shenango_dir $CPPFLAGS"
+  fi
+fi
+
+dnl ------------------------------------------------------
+
+AC_CACHE_CHECK([for kona directory], ac_cv_kona_dir, [
+  saved_LIBS="$LIBS"
+  saved_LDFLAGS="$LDFLAGS"
+  saved_CPPFLAGS="$CPPFLAGS"
+  le_found=no
+  for ledir in $trykonadir "" $prefix /usr/local ; do
+    LDFLAGS="$saved_LDFLAGS"
+    LIBS="-lkona -lrdmacm -libverbs -lpthread -lstdc++ -lm -ldl -luring $saved_LIBS"
+    CPPFLAGS="-D_POSIX_C_SOURCE=200112L -std=c11 $CPPFLAGS"
+
+    # Skip the directory if it isn't there.
+    if test ! -z "$ledir" -a ! -d "$ledir" ; then
+       continue;
+    fi
+    if test ! -z "$ledir" ; then
+      if test -d "$ledir/pbmem" ; then
+        LDFLAGS="-L$ledir/pbmem $LDFLAGS"
+      else
+        LDFLAGS="-L$ledir $LDFLAGS"
+      fi
+      if test -d "$ledir/pbmem" ; then
+        CPPFLAGS="-I$ledir/pbmem $CPPFLAGS"
+      else
+        CPPFLAGS="-I$ledir $CPPFLAGS"
+      fi
+      if test -d "$ledir/liburing/src/include" ; then
+        CPPFLAGS="-I$ledir/liburing/src/include $CPPFLAGS"
+      else
+        CPPFLAGS="-I$ledir $CPPFLAGS"
+      fi
+    fi
+    # Can I compile and link it?
+    AC_TRY_LINK([#include <sys/time.h>
+#include <sys/types.h>
+#include "klib.h"
+#include "numalib.h"
+#include "utils.h"
+#include "timers.h"], [ rinit() ],
+       [ kona_linked=yes ], [ kona_linked=no ])
+    if test $kona_linked = yes; then
+       if test ! -z "$ledir" ; then
+         ac_cv_kona_dir=$ledir
+       else
+         ac_cv_kona_dir="(system)"
+       fi
+       le_found=yes
+       break
+    fi
+  done
+  LIBS="$saved_LIBS"
+  LDFLAGS="$saved_LDFLAGS"
+  CPPFLAGS="$saved_CPPFLAGS"
+  if test $le_found = no ; then
+    AC_MSG_WARN([kona is not specified, so not linking it.
+      If it's already installed and you want to link it, specify its path using --with-kona=/dir/])
+  fi
+])
+
+if test $le_found = yes ; then
+  # CPPFLAGS="-g -ggdb -DDEBUG $CPPFLAGS"
+  # CPPFLAGS="-D_POSIX_C_SOURCE=200112L $CPPFLAGS"
+  CPPFLAGS="-D_POSIX_C_SOURCE=200112L -std=c11 -DWITH_KONA $CPPFLAGS"
+  LIBS="-lkona -lrdmacm -libverbs -lpthread -lstdc++ -lm -ldl -luring $saved_LIBS"
+  if test $ac_cv_kona_dir != "(system)"; then
+    if test -d "$ac_cv_kona_dir/pbmem" ; then
+      LDFLAGS="-L$ac_cv_kona_dir/pbmem $LDFLAGS"
+    else
+      LDFLAGS="-L$ac_cv_kona_dir $LDFLAGS"
+    fi
+    if test -d "$ac_cv_kona_dir/pbmem" ; then
+      CPPFLAGS="-I$ac_cv_kona_dir/pbmem $CPPFLAGS"
+    else
+      CPPFLAGS="-I$ac_cv_kona_dir $CPPFLAGS"
+    fi
+    if test -d "$ac_cv_kona_dir/liburing/src/include" ; then
+      CPPFLAGS="-I$ac_cv_kona_dir/liburing/src/include $CPPFLAGS"
+    else
+      CPPFLAGS="-I$ac_cv_kona_dir $CPPFLAGS"
+    fi
   fi
 fi
 
