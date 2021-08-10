@@ -7570,7 +7570,12 @@ static int memcached_init(void) {
             fprintf(stderr, "can't find the user %s to switch to\n", username);
             return -EX_NOUSER;
         }
+#ifdef WITH_KONA
+        /* Only change effective user id with Kona and keep real priviliges */
+        if (setegid(pw->pw_gid) < 0 || seteuid(pw->pw_uid) < 0) {
+#else
         if (setgid(pw->pw_gid) < 0 || setuid(pw->pw_uid) < 0) {
+#endif
             fprintf(stderr, "failed to assume identity of user %s\n", username);
             return -EX_OSERR;
         }
@@ -7890,6 +7895,10 @@ int main(int argc, char **argv) {
     arg_parse(argv + 1);
 
     validate_settings();
+
+#ifdef WITH_KONA
+    rinit();
+#endif
 
     ret = runtime_set_initializers(memcached_init, perthread_initializer, late_initializer);
     BUG_ON(ret);
