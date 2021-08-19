@@ -1615,9 +1615,11 @@ static void process_bin_get_or_touch(conn *c) {
     int should_return_value = (c->cmd != PROTOCOL_BINARY_CMD_TOUCH);
     bool failed = false;
 
-    if (settings.verbose > 1) {
+    if (settings.verbose >= 1) {
         fprintf(stderr, "<%p %s ", c, should_touch ? "TOUCH" : "GET");
-        if (fwrite(key, 1, nkey, stderr)) {}
+        if (settings.verbose > 1) {
+            if (fwrite(key, 1, nkey, stderr)) {}
+        }
         fputc('\n', stderr);
     }
 
@@ -2412,7 +2414,7 @@ static void process_bin_update(conn *c) {
 
     vlen = c->binary_header.request.bodylen - (nkey + c->binary_header.request.extlen);
 
-    if (settings.verbose > 1) {
+    if (settings.verbose >= 1) {
         int ii;
         if (c->cmd == PROTOCOL_BINARY_CMD_ADD) {
             fprintf(stderr, "<%p ADD ", c);
@@ -2421,11 +2423,12 @@ static void process_bin_update(conn *c) {
         } else {
             fprintf(stderr, "<%p REPLACE ", c);
         }
-        for (ii = 0; ii < nkey; ++ii) {
-            fprintf(stderr, "%c", key[ii]);
+        if (settings.verbose > 1) {
+            for (ii = 0; ii < nkey; ++ii) {
+                fprintf(stderr, "%c", key[ii]);
+            }
+            fprintf(stderr, " Value len is %d", vlen);
         }
-
-        fprintf(stderr, " Value len is %d", vlen);
         fprintf(stderr, "\n");
     }
 
