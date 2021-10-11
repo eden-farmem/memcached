@@ -6422,7 +6422,10 @@ static void remove_pidfile(const char *pid_file) {
 
 }
 
-static void sig_handler(const int sig) {
+static void sig_handler(const int sig) { 
+#ifdef WITH_KONA
+    rdestroy();     // prints some stats
+#endif
     printf("Signal handled: %s.\n", strsignal(sig));
     exit(EXIT_SUCCESS);
 }
