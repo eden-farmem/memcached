@@ -2438,6 +2438,9 @@ static void process_bin_update(conn *c) {
 
     it = item_alloc(key, nkey, req->message.body.flags,
             realtime(req->message.body.expiration), vlen+2);
+    if (settings.verbose > 1) {
+        fprintf(stderr, " SET new item at %p size %d\n", it, vlen);
+    }
 
     if (it == 0) {
         enum store_item_type status;

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stddef.h>
 
 #include "memcached.h"
 
@@ -15,6 +16,11 @@ int main(int argc, char **argv) {
     display("Global stats", sizeof(struct stats));
     display("Settings", sizeof(struct settings));
     display("Item (no cas)", sizeof(item));
+    printf("Item Offsets: h_next=%ld; nbytes=%ld; nsuffix=%ld data=%ld\n",
+               (long) offsetof(item, h_next),
+               (long) offsetof(item, nbytes),
+               (long) offsetof(item, nsuffix),
+               (long) offsetof(item, data));
     display("Item (cas)", sizeof(item) + sizeof(uint64_t));
 #ifdef EXTSTORE
     display("extstore header", sizeof(item_hdr));

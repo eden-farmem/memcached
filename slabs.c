@@ -155,10 +155,10 @@ void slabs_init(const size_t limit, const double factor, const bool prealloc, co
         slabclass[i].perslab = settings.slab_page_size / slabclass[i].size;
         if (slab_sizes == NULL)
             size *= factor;
-        if (settings.verbose > 1) {
+        // if (settings.verbose > 1) {
             fprintf(stderr, "slab class %3d: chunk size %9u perslab %7u\n",
                     i, slabclass[i].size, slabclass[i].perslab);
-        }
+        // }
     }
 
     power_largest = i;
@@ -278,6 +278,7 @@ static int do_slabs_newslab(const unsigned int id) {
 
     p->slab_list[p->slabs++] = ptr;
     MEMCACHED_SLABS_SLABCLASS_ALLOCATE(id);
+    fprintf(stderr, "new slab at %p for class %d", ptr, id);    //NOTE: May effect perf!
 
     return 1;
 }
