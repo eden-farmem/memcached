@@ -626,6 +626,7 @@ conn *conn_new(enum conn_states init_state,
     c->write_and_go = init_state;
     c->write_and_free = 0;
     c->item = 0;
+    c->ignore_refcount = false;
 
     c->noreply = false;
 
@@ -709,9 +710,11 @@ static void conn_release_items(conn *c) {
     assert(c != NULL);
 
     if (c->item) {
-        item_remove(c->item);
+        if (!c->ignore_refcount)
+            item_remove(c->item);
         c->item = 0;
     }
+    c->ignore_refcount = false;
 
     while (c->ileft > 0) {
         item *it = *(c->icurr);
@@ -1629,7 +1632,13 @@ static void process_bin_get_or_touch(conn *c) {
 
         it = item_touch(key, nkey, realtime(exptime), c);
     } else {
+#ifdef NO_DIRTY_ON_GET
+        assert(!settings.lru_segmented && !settings.lru_maintainer_thread && !settings.lru_crawler);
+        c->ignore_refcount = true;
+        it = item_get(key, nkey, c, DONT_UPDATE);
+#else
         it = item_get(key, nkey, c, DO_UPDATE);
+#endif
     }
 
     if (it) {
@@ -1721,7 +1730,8 @@ static void process_bin_get_or_touch(conn *c) {
             c->item = it;
 #endif
         } else {
-            item_remove(it);
+            if (!c->ignore_refcount)
+                item_remove(it);
         }
     } else {
         failed = true;
@@ -5642,12 +5652,12 @@ void drive_machine(void *arg) {
                 break;
             }
 #endif
-          if (IS_UDP(c->transport) && c->msgcurr == 0 && build_udp_headers(c) != 0) {
-            if (settings.verbose > 0)
-              fprintf(stderr, "Failed to build UDP headers\n");
-            conn_set_state(c, conn_closing);
-            break;
-          }
+            if (IS_UDP(c->transport) && c->msgcurr == 0 && build_udp_headers(c) != 0) {
+                if (settings.verbose > 0)
+                    fprintf(stderr, "Failed to build UDP headers\n");
+                conn_set_state(c, conn_closing);
+                break;
+            }
             switch (transmit(c)) {
             case TRANSMIT_COMPLETE:
                 if (c->state == conn_mwrite) {
@@ -5773,6 +5783,7 @@ static void udp_handler(struct udp_spawn_data *d) {
 
     c->rbytes = res;
     c->rcurr = c->rbuf;
+    c->ignore_refcount = false;
 
     drive_machine(c);
 }

@@ -145,6 +145,17 @@
 #define APPEND_NUM_STAT(num, name, fmt, val) \
     APPEND_NUM_FMT_STAT("%d:%s", num, name, fmt, val)
 
+/* Enable this for reference-count debugging. */
+#if 0
+# define DEBUG_REFCNT(it,op) \
+                fprintf(stderr, "item %p refcnt(%c) %d %c%c\n", \
+                        it, op, it->refcount, \
+                        (it->it_flags & ITEM_LINKED) ? 'L' : ' ', \
+                        (it->it_flags & ITEM_SLABBED) ? 'S' : ' ')
+#else
+# define DEBUG_REFCNT(it,op) while(0)
+#endif
+
 /**
  * Callback for any function producing stats.
  *
@@ -449,6 +460,15 @@ extern struct settings settings;
 #define ITEM_HDR 128
 #endif
 
+#ifndef NO_DIRTY_ON_GET
+/* We are aiming to not dirty the items in this particular GET path. This means 
+* 1) not messing with refcount throughout the request 2) not bouncing the item 
+* in any queues that will change the next and prev pointers in the item */
+/* Only safe for the flat LRU case in the absence of maintainer threads */
+/* Supporting only for binary GET now */
+#define NO_DIRTY_ON_GET
+#endif
+
 /**
  * Structure for storing items within memcached.
  */
@@ -584,6 +604,7 @@ struct conn {
      */
 
     void   *item;     /* for commands set/add/replace  */
+    bool ignore_refcount;    /* whether the item refcount should be ignored for this connection */
 
     /* data for the swallow state */
     int    sbytes;    /* how many bytes to swallow */

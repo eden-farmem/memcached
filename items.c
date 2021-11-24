@@ -142,17 +142,6 @@ unsigned int do_get_lru_size(uint32_t id) {
     return sizes[id];
 }
 
-/* Enable this for reference-count debugging. */
-#if 0
-# define DEBUG_REFCNT(it,op) \
-                fprintf(stderr, "item %x refcnt(%c) %d %c%c%c\n", \
-                        it, op, it->refcount, \
-                        (it->it_flags & ITEM_LINKED) ? 'L' : ' ', \
-                        (it->it_flags & ITEM_SLABBED) ? 'S' : ' ')
-#else
-# define DEBUG_REFCNT(it,op) while(0)
-#endif
-
 /**
  * Generates the variable-sized part of the header for an object.
  *
@@ -946,7 +935,8 @@ void item_stats_sizes(ADD_STAT add_stats, void *c) {
 item *do_item_get(const char *key, const size_t nkey, const uint32_t hv, conn *c, const bool do_update) {
     item *it = assoc_find(key, nkey, hv);
     if (it != NULL) {
-        refcount_incr(it);
+        if (!c->ignore_refcount)
+            refcount_incr(it);
         /* Optimization for slab reassignment. prevents popular items from
          * jamming in busy wait. Can only do this here to satisfy lock order
          * of item_lock, slabs_lock. */
@@ -985,9 +975,10 @@ item *do_item_get(const char *key, const size_t nkey, const uint32_t hv, conn *c
     if (it != NULL) {
         was_found = 1;
         if (item_is_flushed(it)) {
-            do_item_unlink(it, hv);
             STORAGE_delete(mythr()->storage, it);
-            do_item_remove(it);
+            do_item_unlink(it, hv);
+            if (!c->ignore_refcount)
+                do_item_remove(it);
             it = NULL;
             mutex_lock(&mythr()->stats.mutex);
             mythr()->stats.get_flushed++;
@@ -997,9 +988,10 @@ item *do_item_get(const char *key, const size_t nkey, const uint32_t hv, conn *c
             }
             was_found = 2;
         } else if (it->exptime != 0 && it->exptime <= current_time) {
-            do_item_unlink(it, hv);
             STORAGE_delete(mythr()->storage, it);
-            do_item_remove(it);
+            do_item_unlink(it, hv);
+            if (!c->ignore_refcount)
+                do_item_remove(it);
             it = NULL;
             mutex_lock(&mythr()->stats.mutex);
             mythr()->stats.get_expired++;
