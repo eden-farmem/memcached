@@ -7916,9 +7916,9 @@ int main(int argc, char **argv) {
 
     validate_settings();
 
-#ifdef WITH_KONA
-    rinit();
-#endif
+// #ifdef WITH_KONA
+//     rinit();
+// #endif
 
     ret = runtime_set_initializers(memcached_init, perthread_initializer, late_initializer);
     BUG_ON(ret);

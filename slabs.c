@@ -278,7 +278,7 @@ static int do_slabs_newslab(const unsigned int id) {
 
     p->slab_list[p->slabs++] = ptr;
     MEMCACHED_SLABS_SLABCLASS_ALLOCATE(id);
-    fprintf(stderr, "new slab at %p for class %d", ptr, id);    //NOTE: May effect perf!
+    // fprintf(stderr, "new slab at %p for class %d", ptr, id);
 
     return 1;
 }
