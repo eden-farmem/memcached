@@ -232,7 +232,7 @@ def load_app_output(app, directory, first_sample_time):
     }
 
 def parse_kona_accounting_log(dirn, experiment):
-    fname = "{dirn}/memcached.out".format(dirn=dirn, **experiment)
+    fname = "{dirn}/kona_counters.out".format(dirn=dirn, **experiment)
     with open(fname) as f:
         data = f.read().splitlines()
 
@@ -277,6 +277,7 @@ def parse_kona_accounting_log(dirn, experiment):
     stats = defaultdict(list)
     for line in data:
         if "counters," in line:
+            print(line)
             dats = line.split()
             time = int(dats[0])
             values = dats[1].split(",")

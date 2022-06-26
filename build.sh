@@ -152,14 +152,17 @@ fi
 
 if [[ $KONA ]]; then 
     pushd ${KONA_DIR}/pbmem
-    make je_clean
+    # make je_clean
     make clean
     make je_jemalloc
-    core_opts="POLLER_CORE=$KONA_POLLER_CORE "
-    core_opts+="FAULT_HANDLER_CORE=$KONA_FAULT_HANDLER_CORE "
-    core_opts+="EVICTION_CORE=$KONA_EVICTION_CORE "
-    core_opts+="ACCOUNTING_CORE=${KONA_ACCOUNTING_CORE} "
-    make all -j $core_opts $KCFG PROVIDED_CFLAGS="""$KOPTS""" ${DEBUG} ${GDBFLAG}
+    OPTS=
+    OPTS="$OPTS POLLER_CORE=$KONA_POLLER_CORE"
+    OPTS="$OPTS FAULT_HANDLER_CORE=$KONA_FAULT_HANDLER_CORE"
+    OPTS="$OPTS EVICTION_CORE=$KONA_EVICTION_CORE"
+    OPTS="$OPTS ACCOUNTING_CORE=${KONA_ACCOUNTING_CORE}"
+    make all -j $OPTS $KCFG PROVIDED_CFLAGS="""$KOPTS""" ${DEBUG} ${GDBFLAG}
+    sudo sysctl -w vm.unprivileged_userfaultfd=1   
+    echo 0 | sudo tee /proc/sys/kernel/numa_balancing   # to avoid numa hint faults 
     popd
 fi
 

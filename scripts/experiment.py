@@ -166,8 +166,7 @@ def new_memcached_server(threads, experiment, name="memcached", transport="tcp",
     args += " -o hashpower={hashpower}"
 
     args += {
-        # 'shenango': ",no_hashexpand,no_lru_crawler,no_lru_maintainer,idle_timeout=0", # UNDO
-        'shenango': ",no_hashexpand,lru_crawler,lru_maintainer,idle_timeout=0",
+        'shenango': ",no_hashexpand,no_lru_crawler,no_lru_maintainer,idle_timeout=0",
     }.get(experiment['system'])
 
     x['args'] = "-t {threads} " + args
@@ -657,6 +656,7 @@ def collect_logs(experiment, success):
     runpara("scp {{}}:{exp}/*.log {exp}/ || true".format(exp=experiment['name']), servers + [OBSERVER])
     runpara("scp {{}}:{exp}/*.out {exp}/ || true".format(exp=experiment['name']), servers)
     runpara("scp {{}}:{exp}/*.err {exp}/ || true".format(exp=experiment['name']), servers)
+    runpara("scp {{}}:{exp}/*_time {exp}/ || true".format(exp=experiment['name']), servers)
     runremote("rm -rf {}".format(experiment['name']), servers + [OBSERVER])
     if success: 
         if not os.path.exists('data'):  os.makedirs('data')
@@ -755,6 +755,7 @@ def main():
     parser.add_argument('-kedt', '--konaedt', action='store', help='kona evict done threshold', type=float, default=DEFAULT_KONA_EVICT_DONE_THR)
     parser.add_argument('-kebs', '--konaebs', action='store', help='kona evict batch size', type=int, default=DEFAULT_EVICTION_BATCH_SIZE)
     parser.add_argument('--gdb', action='store_true', help="wait to attach the main process to gdb (for debugging)", default=False)
+    parser.add_argument('--noht', action='store_true', help="run without hyperthreading", default=False)
     parser.add_argument('--stopat', action='store', help="stop program at a certain point (for debugging)", type=int, default=0)
 
     args = parser.parse_args()
@@ -771,7 +772,8 @@ def main():
             start_mpps=args.start, mpps=args.finish, samples=args.steps, time=args.time,
             kona=not args.nokona, kona_mem=args.konamem, kona_evict_thr=args.konaet, 
             kona_evict_done_thr=args.konaedt, kona_evict_batch_sz=args.konaebs, 
-            transport=args.prot, nconns=args.nconns, warmup=args.warmup, dump_core=False
+            transport=args.prot, nconns=args.nconns, warmup=args.warmup, dump_core=False,
+            noht=args.noht
         ))
 
     elif role == role.app:

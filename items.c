@@ -937,7 +937,7 @@ item *do_item_get(const char *key, const size_t nkey, const uint32_t hv, conn *c
     item *it = assoc_find(key, nkey, hv);
     if (it != NULL) {
         if (!c->ignore_refcount) {
-            // possible_write_fault_on(&it->refcount);     // UNDO?
+            possible_write_fault_on(&it->refcount);
             refcount_incr(it);
         }
         /* Optimization for slab reassignment. prevents popular items from

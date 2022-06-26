@@ -260,7 +260,7 @@ AC_ARG_ENABLE(gdb,
   [AS_HELP_STRING([--enable-gdb],[build with symbols])])
 if test "x$enable_gdb" = "xyes"
 then
-    CFLAGS="-g -ggdb $CFLAGS"
+    CFLAGS="-g -ggdb -no-pie -fno-pie $CFLAGS"
 fi
 
 dnl ------------------------------------------------------
