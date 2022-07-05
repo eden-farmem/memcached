@@ -1,0 +1,7 @@
+lmemfr,Xput,Faults,Backend,PFType,CPU,Zipfs
+0.50,627538,106289,kona,none,4,1
+0.60,800255,103014,kona,none,4,1
+0.70,1041558,95772,kona,none,4,1
+0.80,1444092,83308,kona,none,4,1
+0.90,1988972,49281,kona,none,4,1
+1.00,1988409,0,kona,none,4,1

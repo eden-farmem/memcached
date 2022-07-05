@@ -110,20 +110,24 @@ for exp in $LS_CMD; do
     # echo $exp
     f="$exp/config.json"
     dirname=$(basename `dirname $f`)
-    name=`jq '.name' $f | tr -d '"'`
-    desc=`jq '.desc' $f | tr -d '"'`
-    localmem=`jq '.apps."'$HOST'" | .[] | select(.name=="memcached") | .kona.mlimit' $f | awk '{ printf $1/1000000 }'`
-    konaet=`jq '.apps."'$HOST'" | .[] | select(.name=="memcached") | .kona.evict_thr' $f`
-    konaedt=`jq '.apps."'$HOST'" | .[] | select(.name=="memcached") | .kona.evict_done_thr' $f`
-    konaebs=`jq '.apps."'$HOST'" | .[] | select(.name=="memcached") | .kona.evict_batch_sz' $f`
-    cores=`jq '.apps."'$HOST'" | .[] | select(.name=="memcached") | .threads' $f`
-    transport=`jq -r '.clients[][0] | select(.app=="synthetic") | .transport' $f`
-    nconns=`jq '.clients[][0] | select(.app=="synthetic") | .client_threads' $f`
-    offered=`jq '.clients[][0] | select(.app=="synthetic") | .mpps' $f`
+    # name=`jq '.name' $f | tr -d '"'`
+    # desc=`jq '.desc' $f | tr -d '"'`
+    # localmem=`jq '.apps."'$HOST'" | .[] | select(.name=="memcached") | .kona.mlimit' $f | awk '{ printf $1/1000000 }'`
+    # konaet=`jq '.apps."'$HOST'" | .[] | select(.name=="memcached") | .kona.evict_thr' $f`
+    # konaedt=`jq '.apps."'$HOST'" | .[] | select(.name=="memcached") | .kona.evict_done_thr' $f`
+    # konaebs=`jq '.apps."'$HOST'" | .[] | select(.name=="memcached") | .kona.evict_batch_sz' $f`
+    # cores=`jq '.apps."'$HOST'" | .[] | select(.name=="memcached") | .threads' $f`
+    # transport=`jq -r '.clients[][0] | select(.app=="synthetic") | .transport' $f`
+    # nconns=`jq '.clients[][0] | select(.app=="synthetic") | .client_threads' $f`
+    # offered=`jq '.clients[][0] | select(.app=="synthetic") | .mpps' $f`
 
+    name=$dirname
     backend=$(cat $exp/settings | grep "backend" | awk -F: '{ print $2 }')
     pgfaults=$(cat $exp/settings | grep "pgfaults" | awk -F: '{ print $2 }')
     desc=$(cat $exp/settings | grep "desc" | awk -F: '{ print $2 }')
+    zipfs=$(cat $exp/settings | grep "zipfs" | awk -F: '{ print $2 }')
+    cores=$(cat $exp/settings | grep "cores" | awk -F: '{ print $2 }')
+    localmem=$(cat $exp/settings | grep "localmem" | awk -F: '{ print $2/1000000 }')
     backend=${backend:-none}
     pgfaults=${pgfaults:-none}
 
@@ -151,7 +155,16 @@ for exp in $LS_CMD; do
         rm -f ${exp}/kona_counters_parsed
         rm -f ${exp}/kona_profiler_parsed
         rm -f ${exp}/iokstats_parsed
+        rm -f ${exp}/client_parsed
     fi
+
+    # client numbers
+    clientout=${exp}/client_parsed
+    if [ ! -f $clientout ]; then 
+        python ${SCRIPT_DIR}/scripts/parse_client_log.py -n ${name} -o ${clientout}
+    fi
+    offered=$(csv_column_mean "$clientout" "offered")
+    achieved=$(csv_column_mean "$clientout" "achieved")
 
     # kona counters
     konastatsout=${exp}/kona_counters_parsed
@@ -181,9 +194,9 @@ for exp in $LS_CMD; do
         python ${ROOT_SCRIPTS_DIR}/parse_shenango_iok.py -i ${iokin} -o ${iokout}   \
             -st=${rstart} -et ${rend} 
     fi
-    iokoffered=$(csv_column_mean "$iokout" "RX_PULLED")
-    iokachieved=$(csv_column_mean "$iokout" "TX_PULLED")
-    iokcpu=$(csv_column_mean "$iokout" "IOK_SATURATION")
+    # iokoffered=$(csv_column_mean "$iokout" "RX_PULLED")
+    # iokachieved=$(csv_column_mean "$iokout" "TX_PULLED")
+    # iokcpu=$(csv_column_mean "$iokout" "IOK_SATURATION")
 
     # write
     HEADER="Exp";                   LINE="$name";
@@ -191,11 +204,15 @@ for exp in $LS_CMD; do
     HEADER="$HEADER,PFType";        LINE="$LINE,${pgfaults}";
     HEADER="$HEADER,CPU";           LINE="$LINE,${cores}";
     HEADER="$HEADER,LocalMem";      LINE="$LINE,${localmem}";
-    # HEADER="$HEADER,ZipfS";         LINE="$LINE,${zipfs}";
+    HEADER="$HEADER,ZipfS";         LINE="$LINE,${zipfs}";
     HEADER="$HEADER,PreloadTime";   LINE="$LINE,${ptime}";
     HEADER="$HEADER,Runtime";       LINE="$LINE,${rtime}";
     # HEADER="$HEADER,Xput";          LINE="$LINE,${xput:-}";
     # HEADER="$HEADER,XputPerCore";   LINE="$LINE,${xputpercore}";
+
+    # CLIENT
+    HEADER="$HEADER,Offered";       LINE="$LINE,${offered}";
+    HEADER="$HEADER,Achieved";      LINE="$LINE,${achieved}";
 
     # KONA
     HEADER="$HEADER,Faults";        LINE="$LINE,${faults}";
@@ -204,10 +221,10 @@ for exp in $LS_CMD; do
     HEADER="$HEADER,WritePF";       LINE="$LINE,${faultsw}";
     HEADER="$HEADER,WPFaults";      LINE="$LINE,${faultswp}";
 
-    # IOK
-    HEADER="$HEADER,IOK_RX";        LINE="$LINE,${iokoffered}";
-    HEADER="$HEADER,IOK_TX";        LINE="$LINE,${iokachieved}";
-    HEADER="$HEADER,IOK_CPU";       LINE="$LINE,${iokcpu}";
+    # # IOK
+    # HEADER="$HEADER,IOK_RX";        LINE="$LINE,${iokoffered}";
+    # HEADER="$HEADER,IOK_TX";        LINE="$LINE,${iokachieved}";
+    # HEADER="$HEADER,IOK_CPU";       LINE="$LINE,${iokcpu}";
 
     HEADER="$HEADER,Desc";          LINE="$LINE,${desc:0:30}";    
     OUT=`echo -e "${OUT}\n${LINE}"`

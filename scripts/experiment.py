@@ -9,6 +9,7 @@ from datetime import datetime
 from enum import Enum
 import argparse
 import signal
+import errno
 
 # Requires password-less sudo and ssh
 # ts requires moreutils to be installed
@@ -140,6 +141,19 @@ def alloc_port(experiment):
     experiment['nextport'] += 1
     return port
 
+# check for the existence of a unix pid
+def check_pid(pid):
+    try:
+        os.kill(pid, 0)
+    except OSError as err:
+        if err.errno == errno.ESRCH:
+            # ESRCH == No such process
+            return False
+        elif err.errno == errno.EPERM:
+            # EPERM clearly means there's a process to deny access to
+            return True
+    return True
+
 def new_memcached_server(threads, experiment, name="memcached", transport="tcp", dump_core=False):
     x = {
         'name': name,
@@ -255,7 +269,8 @@ def new_measurement_instances(count, server_handle, mpps, experiment, mean=842, 
             'mean': mean,
             'client_threads': nconns // count,
             'start_mpps': float(kwargs.get('start_mpps', 0)) / count,
-            'args': "{serverip}:{serverport} {warmup} --output={output} --protocol {protocol} --mode runtime-client --threads {client_threads} --runtime {runtime} --barrier-peers {npeers} --barrier-leader {leader}  --mean={mean} --distribution={distribution} --mpps={mpps} --samples={samples} --transport {transport} --start_mpps {start_mpps}"
+            'zipfs': float(kwargs.get('zipfs')),
+            'args': "{serverip}:{serverport} {warmup} --output={output} --protocol {protocol} --mode runtime-client --threads {client_threads} --runtime {runtime} --barrier-peers {npeers} --barrier-leader {leader}  --mean={mean} --distribution={distribution} --mpps={mpps} --samples={samples} --transport {transport} --start_mpps {start_mpps} --zipfs {zipfs}"
         }
         warmup = kwargs.get('warmup')
         x["warmup"] = "--warmup" if warmup else ""
@@ -300,7 +315,7 @@ def bench_memcached(system, thr, spin=False, bg=None, samples=55, time=10, mpps=
         noht=False, transport="tcp", nconns=1200, start_mpps=0.0, warmup=False,
         kona=False, kona_mem=None, kona_evict_thr=DEFAULT_KONA_EVICT_THR, 
         kona_evict_done_thr=DEFAULT_KONA_EVICT_DONE_THR, kona_evict_batch_sz=DEFAULT_EVICTION_BATCH_SIZE, 
-        name=None, desc=None, dump_core=False):
+        name=None, desc=None, dump_core=False, zipfs=None):
     x = new_experiment(system, name=name, desc=desc)
     # x['name'] += "-memcached" + "-" + transport
     # x['name'] += "-spin" if spin else ""
@@ -321,7 +336,7 @@ def bench_memcached(system, thr, spin=False, bg=None, samples=55, time=10, mpps=
         memcached_handle['kona']['evict_batch_sz'] = kona_evict_batch_sz
         add_kona_apps(x, memcached_handle, kona_mem, kona_evict_thr, kona_evict_done_thr)
 
-    new_measurement_instances(len(CLIENT_SET), memcached_handle, mpps, x, nconns=nconns, start_mpps=start_mpps, warmup=warmup)
+    new_measurement_instances(len(CLIENT_SET), memcached_handle, mpps, x, nconns=nconns, start_mpps=start_mpps, warmup=warmup, zipfs=zipfs)
     finalize_measurement_cohort(x, samples, time)
     return x
 
@@ -452,10 +467,6 @@ def launch_shenango_program(cfg, experiment):
         print("Stopped for debugging at {}".format(stopat)) 
         time.sleep(300)
 
-    ### HACK
-    # if THISHOST.startswith("pd") or THISHOST == "sc2-hs2-b1640":
-    #     fullcmd = "export RUST_BACKTRACE=1; " + fullcmd
-
     # If GDB, prompt for manual start and wait
     if gdb and "kona" in cfg:
         proc = None
@@ -469,6 +480,21 @@ def launch_shenango_program(cfg, experiment):
     proc.poll()
     print(str(proc.pid) + " returns code: " + str(proc.returncode))  
     assert not proc.returncode
+
+    # memcached may fail but later check for that as well
+    if cfg['name'] == 'memcached':
+        if 'pidfile' in cfg:
+            time.sleep(10)
+            cwd = os.getcwd()
+            os.chdir(experiment['name'])
+            assert os.path.exists(cfg['pidfile']), "memcached failed to init: no pid file"
+            pid = open(cfg['pidfile'], 'r').read()
+            print("memcached pid: " + pid)
+            if not check_pid(int(pid)):
+                print('didnt last 10 seconds')
+                time.sleep(60)
+            assert check_pid(int(pid)), "memcached failed to init: didn't last 10 secs"
+            os.chdir(cwd)
     return proc
 
 
@@ -757,6 +783,7 @@ def main():
     parser.add_argument('--gdb', action='store_true', help="wait to attach the main process to gdb (for debugging)", default=False)
     parser.add_argument('--noht', action='store_true', help="run without hyperthreading", default=False)
     parser.add_argument('--stopat', action='store', help="stop program at a certain point (for debugging)", type=int, default=0)
+    parser.add_argument('--zipfs', action='store', help='zipfs param', type=float, default=0.1)
 
     args = parser.parse_args()
 
@@ -773,7 +800,7 @@ def main():
             kona=not args.nokona, kona_mem=args.konamem, kona_evict_thr=args.konaet, 
             kona_evict_done_thr=args.konaedt, kona_evict_batch_sz=args.konaebs, 
             transport=args.prot, nconns=args.nconns, warmup=args.warmup, dump_core=False,
-            noht=args.noht
+            noht=args.noht, zipfs=args.zipfs
         ))
 
     elif role == role.app:

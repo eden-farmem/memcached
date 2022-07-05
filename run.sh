@@ -31,6 +31,7 @@ CONNS=100
 MPPS=2
 NKEYS=10M
 NOHT_FLAG="--noht"
+ZIPFS=0.1
 
 EXPNAME=run-$(date '+%m-%d-%H-%M-%S')  #unique id
 TMP_FILE_PFX="tmp_mcached_"
@@ -140,7 +141,6 @@ case $i in
     -w|--warmup)
     WARMUP=yes
     WMFLAG="--warmup"
-
     ;;
 
     -o=*|--out=*)
@@ -171,9 +171,9 @@ case $i in
     ;;
 
     -d|--debug) # debug config
-    DEBUG="DEBUG=1"
-    DEBUG_FLAG="--debug"
-    CFLAGS="$CFLAGS -DDEBUG"
+    # DEBUG="DEBUG=1"
+    # DEBUG_FLAG="--debug"
+    # CFLAGS="$CFLAGS -DDEBUG"
     CONNS=5
     MPPS=1e-2
     LMEM=500000     # 500 KB
@@ -304,10 +304,11 @@ if [[ $WITH_KONA ]]; then
     KOPTS="$KOPTS --konaet ${EVICT_THR} --konaedt ${EVICT_DONE_THR} --konaebs ${EVICT_BATCH_SIZE}"
 fi
 # STOPAT="--stopat 4";    # for debugging
+ZFLAG="--zipfs ${ZIPFS}"
 python ${SCRIPT_DIR}/scripts/experiment.py --name ${EXPNAME}    \
     -p udp -nc $CONNS --scores ${NCORES} ${KOPTS} ${NOHT_FLAG}  \
     --time $RUNTIME --start $MPPS --finish $MPPS  ${WMFLAG}     \
-    ${STOPAT} ${GDBFLAG} -d "$README"
+    ${ZFLAG} ${STOPAT} ${GDBFLAG} -d "$README"
 echo "return code: $?"
 
 # cleanup

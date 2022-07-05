@@ -937,7 +937,7 @@ item *do_item_get(const char *key, const size_t nkey, const uint32_t hv, conn *c
     item *it = assoc_find(key, nkey, hv);
     if (it != NULL) {
         if (!c->ignore_refcount) {
-            possible_write_fault_on(&it->refcount);
+            HINT_WRITE_FAULT_AT(&it->refcount);
             refcount_incr(it);
         }
         /* Optimization for slab reassignment. prevents popular items from
@@ -963,8 +963,8 @@ item *do_item_get(const char *key, const size_t nkey, const uint32_t hv, conn *c
     }
     int was_found = 0;
 
+    int ii;
     if (settings.verbose > 2) {
-        int ii;
         if (it == NULL) {
             fprintf(stderr, "> NOT FOUND ");
         } else {
@@ -974,6 +974,11 @@ item *do_item_get(const char *key, const size_t nkey, const uint32_t hv, conn *c
             fprintf(stderr, "%c", key[ii]);
         }
     }
+    // char str[11];
+    // for (ii = 0; ii < 10; ++ii)
+    //     str[ii] = key[ii];
+    // str[ii] = '\0';
+    // fprintf(stderr, "%s", str);
 
     if (it != NULL) {
         was_found = 1;

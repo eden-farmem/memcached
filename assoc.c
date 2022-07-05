@@ -86,7 +86,7 @@ item *assoc_find(const char *key, const size_t nkey, const uint32_t hv) {
     item *ret = NULL;
     int depth = 0;
     while (it) {
-        possible_read_fault_on(&it->nkey);
+        HINT_READ_FAULT_AT(&it->nkey);
         if ((nkey == it->nkey) && (memcmp(key, ITEM_key(it), nkey) == 0)) {
             ret = it;
             break;

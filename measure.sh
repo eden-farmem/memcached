@@ -51,32 +51,40 @@ check_for_stop() {
     fi
 }
 
-desc="real"
-for cfg in "kona" "apf-sync" "apf-async"; do
-    OPTS=
-    # OPTS="$OPTS --nopie"    #no ASLR
+desc="zipfreal"
+# for tries in 1 2 3; do 
+    # for cores in 1 2 3 4 5; do
+    for cores in 4; do
+        # for zs in 0.1 0.5 1; do 
+        for zs in 1; do 
+            # for cfg in "kona" "apf-sync" "apf-async"; do
+            for cfg in "apf-async"; do
+                OPTS=
+                # OPTS="$OPTS --nopie"    #no ASLR
 
-    case $cfg in
-    "kona")             OPTS="$OPTS --kona";;
-    "apf-sync")         OPTS="$OPTS --kona -pf=SYNC";;
-    "apf-async")        OPTS="$OPTS --kona -pf=ASYNC";;
-    *)                  echo "Unknown fault kind"; exit;;
-    esac
+                case $cfg in
+                "vanilla")          OPTS=;;
+                "kona")             OPTS="$OPTS --kona";;
+                "apf-sync")         OPTS="$OPTS --kona -pf=SYNC";;
+                "apf-async")        OPTS="$OPTS --kona -pf=ASYNC";;
+                *)                  echo "Unknown fault kind"; exit;;
+                esac
 
-    bash run.sh ${OPTS} --force --buildonly #rebuild
-    for cores in 1; do
-        # for mem in `seq 1000 200 2000`; do
-        for mem in $MEM; do
-            check_for_stop
-            lmem=$((mem*1000000))
-            echo "Running ${cores} cores, ${mem} mem"
-            bash run.sh ${OPTS} ${FFLAG} -c=$cores -lm=${lmem} ${WARMUP} \
-                -d="""${desc}""" -fl="""${CFLAGS}""" 
-            echo "return code: $?"
-            sleep 30
+                bash run.sh ${OPTS} --force --buildonly #rebuild
+                # for mem in `seq 1000 200 2000`; do
+                for mem in 1600; do
+                    check_for_stop
+                    lmem=$((mem*1000000))
+                    echo "Running ${cores} cores, ${mem} mem, zipfs ${zs}"
+                    bash run.sh ${OPTS} ${FFLAG} -c=$cores -lm=${lmem} ${WARMUP} \
+                        -d="""${desc}""" -fl="""${CFLAGS}""" -zs=${zs}
+                    echo "return code: $?"
+                    sleep 30
+                done
+            done
         done
     done
-done
+# done
 
 # cleanup
 rm -f ${TMP_PFX}*
