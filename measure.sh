@@ -13,7 +13,7 @@ usage="\n
 #Defaults
 SCRIPT_DIR=`dirname "$0"`
 TMP_PFX=tmp_mcached_
-WARMUP="--warmup"
+# WARMUP="--warmup"
 
 # parse cli
 for i in "$@"
@@ -51,14 +51,14 @@ check_for_stop() {
     fi
 }
 
-desc="zipfreal"
-# for tries in 1 2 3; do 
+desc="paper"
+for tries in 1 2 3; do 
     # for cores in 1 2 3 4 5; do
     for cores in 4; do
         # for zs in 0.1 0.5 1; do 
         for zs in 1; do 
             # for cfg in "kona" "apf-sync" "apf-async"; do
-            for cfg in "apf-async"; do
+            for cfg in "kona" "apf-async"; do
                 OPTS=
                 # OPTS="$OPTS --nopie"    #no ASLR
 
@@ -71,20 +71,73 @@ desc="zipfreal"
                 esac
 
                 bash run.sh ${OPTS} --force --buildonly #rebuild
-                # for mem in `seq 1000 200 2000`; do
-                for mem in 1600; do
+                for mem in `seq 600 200 2000`; do
+                # for mem in 500 1000; do
                     check_for_stop
+                    
+                    #determine mpps
+                    mpps=1
+                    if [ $mem -gt 1000 ]; then   mpps=1.5;  fi
+                    if [ $mem -gt 1200 ]; then   mpps=2;    fi
+                    if [ $mem -gt 1400 ]; then   mpps=2.5;  fi
+                    if [ $mem -gt 1600 ]; then   mpps=3;    fi
+                    if [ $mem -gt 1800 ]; then   mpps=4;    fi
                     lmem=$((mem*1000000))
-                    echo "Running ${cores} cores, ${mem} mem, zipfs ${zs}"
+
+                    echo "Running ${cores} cores, ${mem} mem, zipfs ${zs}, mpps ${mpps}"
                     bash run.sh ${OPTS} ${FFLAG} -c=$cores -lm=${lmem} ${WARMUP} \
-                        -d="""${desc}""" -fl="""${CFLAGS}""" -zs=${zs}
+                        -d="""${desc}""" -fl="""${CFLAGS}""" -zs=${zs} -ld=${mpps}
                     echo "return code: $?"
                     sleep 30
                 done
             done
         done
     done
-# done
+done
+
+desc="paper-cores"
+for tries in 1 2 3; do 
+    # for cores in 1 2 3 4 5; do
+    for cores in 1 2 3 4 5 6 7 8 9 10; do
+        # for zs in 0.1 0.5 1; do 
+        for zs in 1; do 
+            # for cfg in "kona" "apf-sync" "apf-async"; do
+            for cfg in "kona" "apf-async"; do
+                OPTS=
+                # OPTS="$OPTS --nopie"    #no ASLR
+
+                case $cfg in
+                "vanilla")          OPTS=;;
+                "kona")             OPTS="$OPTS --kona";;
+                "apf-sync")         OPTS="$OPTS --kona -pf=SYNC";;
+                "apf-async")        OPTS="$OPTS --kona -pf=ASYNC";;
+                *)                  echo "Unknown fault kind"; exit;;
+                esac
+
+                bash run.sh ${OPTS} --force --buildonly #rebuild
+                # for mem in `seq 400 200 2000`; do
+                for mem in 500 1000; do
+                    check_for_stop
+                    
+                    #determine mpps
+                    mpps=1
+                    if [ $mem -ge 1000 ]; then   mpps=1.5;  fi
+                    if [ $mem -gt 1200 ]; then   mpps=2;    fi
+                    if [ $mem -gt 1400 ]; then   mpps=2.5;  fi
+                    if [ $mem -gt 1600 ]; then   mpps=3;    fi
+                    if [ $mem -gt 1800 ]; then   mpps=4;    fi
+                    lmem=$((mem*1000000))
+
+                    echo "Running ${cores} cores, ${mem} mem, zipfs ${zs}, mpps ${mpps}"
+                    bash run.sh ${OPTS} ${FFLAG} -c=$cores -lm=${lmem} ${WARMUP} \
+                        -d="""${desc}""" -fl="""${CFLAGS}""" -zs=${zs} -ld=${mpps}
+                    echo "return code: $?"
+                    sleep 30
+                done
+            done
+        done
+    done
+done
 
 # cleanup
 rm -f ${TMP_PFX}*

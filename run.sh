@@ -71,6 +71,7 @@ usage="\n
 -c, --cores \t number of CPU cores (defaults to 1)\n
 -zs, --zipfs \t S param of zipf workload\n
 -lm, --localmem \t local memory with kona (in bytes)\n
+-ld, --load \t offered load at client in million packets/sec (mpps)\n
 -w, --warmup \t run warmup for a few seconds before taking measurement\n
 -o, --out \t output file for any results\n
 -s, --safemode \t build kona with safe mode on\n
@@ -136,6 +137,10 @@ case $i in
 
     -lm=*|--localmem=*)
     LMEM=${i#*=}
+    ;;
+
+    -ld=*|--load=*)
+    MPPS=${i#*=}
     ;;
 
     -w|--warmup)
@@ -282,6 +287,7 @@ save_cfg "zipfs"    $ZIPFS
 save_cfg "warmup"   $WARMUP
 save_cfg "backend"  $BACKEND
 save_cfg "localmem" $LMEM
+save_cfg "offered"  $MPPS
 save_cfg "pgfaults" $PAGE_FAULTS
 save_cfg "desc"     $README
 echo -e "$CFGSTORE" > settings

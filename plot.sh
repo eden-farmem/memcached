@@ -63,7 +63,8 @@ if [ "$PLOTID" == "1" ]; then
     PLOTEXT=pdf
 
     ## data
-    pattern="07-0[34]"; bkend=kona; zipfs=1; cores=4; desc="zipfreal";
+    # pattern="07-0[34]"; bkend=kona; zipfs=1; cores=4; desc="zipfreal";
+    pattern="07-0[56]"; bkend=kona; zipfs=1; cores=4; desc="paper";
 
     cfg=${cores}cores_be${bkend}_zs${zipfs}_${desc}
     if [[ $desc ]]; then descopt="-d=$desc"; fi
@@ -71,18 +72,20 @@ if [ "$PLOTID" == "1" ]; then
     pgf=none    #baseline
     basefile=$plotdir/data_${cores}cores_pgf${pgf}_${cfg}
     if [[ $FORCE ]] || [ ! -f "$basefile" ]; then
-        echo "lmemfr,Xput,Faults,Backend,PFType,CPU,Zipfs" > $basefile
-        for mem in `seq 1000 200 2000`; do 
+        echo "lmemfr,Xput,XputErr,Faults,FaultsErr,Backend,PFType,CPU,Zipfs" > $basefile
+        for mem in `seq 800 200 2000`; do 
             tmpfile=${TMP_FILE_PFX}data
             rm -f ${tmpfile}
             bash ${SCRIPT_DIR}/show.sh -cs="$pattern" -be=$bkend -pf=$pgf -lm=${mem} \
                 -c=$cores -of=$tmpfile -zs=${zipfs} ${descopt}
             cat $tmpfile
-            memf=$(echo $mem | awk '{ printf "%.2f", $0/2000 }' )
+            memf=$(echo $mem | awk '{ printf "%.2f", $0*1.0/2000 }' )
             xmean=$(csv_column_mean $tmpfile "Achieved")
+            xstd=$(csv_column_stdev $tmpfile "Achieved")
             fmean=$(csv_column_mean $tmpfile "Faults")
+            fstd=$(csv_column_stdev $tmpfile "Faults")
             # NOTE: changing this ordering may require updating LMEMCOL, XPUTCOL, etc. 
-            echo ${memf},${xmean},${fmean},${bkend},${pgf},${cores},${zipfs} >> ${basefile}
+            echo ${memf},${xmean},${xstd},${fmean},${fstd},${bkend},${pgf},${cores},${zipfs} >> ${basefile}
         done
     fi
     cat $basefile | awk -F, '{ print $'$XPUTCOL' }' > ${TMP_FILE_PFX}_baseline_xput
@@ -91,18 +94,20 @@ if [ "$PLOTID" == "1" ]; then
     pgf=ASYNC    #upcalls
     upcallfile=$plotdir/data_${cores}cores_pgf${pgf}_${cfg}
     if [[ $FORCE ]] || [ ! -f "$upcallfile" ]; then
-        echo "lmemfr,Xput,Faults,Backend,PFType,CPU,Threads,Zipfs" > $upcallfile
-        for mem in `seq 1000 200 2000`; do 
+        echo "lmemfr,Xput,XputErr,Faults,FaultsErr,Backend,PFType,CPU,Threads,Zipfs" > $upcallfile
+        for mem in `seq 800 200 2000`; do 
             tmpfile=${TMP_FILE_PFX}data
             rm -f ${tmpfile}
             bash ${SCRIPT_DIR}/show.sh -cs="$pattern" -be=$backend -pf=$pgf -lm=${mem} \
                 -c=$cores -of=$tmpfile -t=${thr} -zs=${zipfs} ${descopt}
             cat $tmpfile
-            memf=$(echo $mem | awk '{ printf "%.2f", $0/2000 }' )
+            memf=$(echo $mem | awk '{ printf "%.2f", $0*1.0/2000 }' )
             xmean=$(csv_column_mean $tmpfile "Achieved")
+            xstd=$(csv_column_stdev $tmpfile "Achieved")
             fmean=$(csv_column_mean $tmpfile "Faults")
+            fstd=$(csv_column_stdev $tmpfile "Faults")
             # NOTE: changing this ordering may require updating LMEMCOL, XPUTCOL, etc. 
-            echo ${memf},${xmean},${fmean},${bkend},${pgf},${cores},${zipfs} >> ${upcallfile}
+            echo ${memf},${xmean},${xstd},${fmean},${fstd},${bkend},${pgf},${cores},${zipfs} >> ${upcallfile}
         done
     fi
     cat $upcallfile | awk -F, '{ print $'$XPUTCOL' }' > ${TMP_FILE_PFX}_upcall_xput
@@ -120,17 +125,17 @@ if [ "$PLOTID" == "1" ]; then
     cat $speedup
 
     # plot xput & speedup
-    YLIMS="--ymin 0 --ymax 2"
+    YLIMS="--ymin 0 --ymax 3500"
     plotname=${plotdir}/xput_${cfg}.${PLOTEXT}
     if [[ $FORCE_PLOTS ]] || [ ! -f "$plotname" ]; then
-        python3 ${ROOTDIR}/scripts/plot.py ${plots}         \
-            -dyc ${basefile} Xput -ls dashed -l "No Annot"  \
-            -dyc ${upcallfile} Xput -ls solid -l "With Annot"   \
-            -dyc ${speedup} speedup -ls dashdot -l "Speedup"    \
-            -yl "MOPS" --ymul 1e-6 ${YLIMS}                 \
+        python3 ${ROOT_SCRIPTS_DIR}/plot.py                             \
+            -dyce ${basefile} Xput XputErr -ls dashed -l "Original"     \
+            -dyce ${upcallfile} Xput XputErr -ls solid -l "Annotated"   \
+            -dyce ${speedup} speedup "" -ls dashdot -l "Speedup"        \
+            -yl "KOPS" --ymul 1e-3  ${YLIMS}                \
             --twin 3 -tyl "Gain (%)"                        \
             -xc lmemfr -xl "Local Memory Fraction"          \
-            --size 5 3.5 -fs 13 -of $PLOTEXT -o $plotname
+            --size 5 3.5 -fs 15 -of $PLOTEXT -o $plotname
     fi
     display ${plotname} &
 
@@ -138,12 +143,12 @@ if [ "$PLOTID" == "1" ]; then
     YLIMS="--ymin 0 --ymax 150"
     plotname=${plotdir}/faults_$cfg.${PLOTEXT}
     if [[ $FORCE_PLOTS ]] || [ ! -f "$plotname" ]; then
-        python3 ${ROOTDIR}/scripts/plot.py ${plots}             \
-            -dyc ${basefile} Faults -ls dashed -l "No Annot"    \
-            -dyc ${upcallfile} Faults -ls solid -l "With Annot" \
+        python3 ${ROOT_SCRIPTS_DIR}/plot.py                                 \
+            -dyce ${basefile} Faults FaultsErr -ls dashed -l "Original"     \
+            -dyce ${upcallfile} Faults FaultsErr -ls solid -l "Annotated"   \
             -yl "KFPS" --ymul 1e-3 ${YLIMS}                     \
             -xc lmemfr -xl "Local Memory Fraction"              \
-            --size 5 3.5 -fs 13 -of $PLOTEXT -o $plotname
+            --size 5 3.5 -fs 15 -of $PLOTEXT -o $plotname
     fi   
     display ${plotname} &
 fi
