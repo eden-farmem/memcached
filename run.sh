@@ -30,7 +30,7 @@ PAGE_FAULTS=
 CONNS=100
 MPPS=2
 NKEYS=10M
-NOHT_FLAG="--noht"
+# NOHT_FLAG="--noht"
 ZIPFS=0.1
 
 EXPNAME=run-$(date '+%m-%d-%H-%M-%S')  #unique id

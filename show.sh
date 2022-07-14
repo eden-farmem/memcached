@@ -122,13 +122,13 @@ for exp in $LS_CMD; do
     # offered=`jq '.clients[][0] | select(.app=="synthetic") | .mpps' $f`
 
     name=$dirname
-    backend=$(cat $exp/settings | grep "backend" | awk -F: '{ print $2 }')
-    pgfaults=$(cat $exp/settings | grep "pgfaults" | awk -F: '{ print $2 }')
-    desc=$(cat $exp/settings | grep "desc" | awk -F: '{ print $2 }')
-    zipfs=$(cat $exp/settings | grep "zipfs" | awk -F: '{ print $2 }')
-    cores=$(cat $exp/settings | grep "cores" | awk -F: '{ print $2 }')
-    localmem=$(cat $exp/settings | grep "localmem" | awk -F: '{ print $2/1000000 }')
-    warmup=$(cat $exp/settings | grep "warmup" | awk -F: '{ print $2 }')
+    backend=$(cat $exp/settings | grep "backend:" | awk -F: '{ print $2 }')
+    pgfaults=$(cat $exp/settings | grep "pgfaults:" | awk -F: '{ print $2 }')
+    desc=$(cat $exp/settings | grep "desc:" | awk -F: '{ print $2 }')
+    zipfs=$(cat $exp/settings | grep "zipfs:" | awk -F: '{ print $2 }')
+    cores=$(cat $exp/settings | grep "cores:" | awk -F: '{ print $2 }')
+    localmem=$(cat $exp/settings | grep "localmem:" | awk -F: '{ print $2/1000000 }')
+    warmup=$(cat $exp/settings | grep "warmup:" | awk -F: '{ print $2 }')
     backend=${backend:-none}
     pgfaults=${pgfaults:-none}
 
@@ -206,7 +206,7 @@ for exp in $LS_CMD; do
     HEADER="$HEADER,CPU";           LINE="$LINE,${cores}";
     HEADER="$HEADER,LocalMem";      LINE="$LINE,${localmem}";
     HEADER="$HEADER,ZipfS";         LINE="$LINE,${zipfs}";
-    HEADER="$HEADER,Warmup";         LINE="$LINE,${warmup}";
+    # HEADER="$HEADER,Warmup";         LINE="$LINE,${warmup}";
     # HEADER="$HEADER,PreloadTime";   LINE="$LINE,${ptime}";
     HEADER="$HEADER,Runtime";       LINE="$LINE,${rtime}";
     # HEADER="$HEADER,Xput";          LINE="$LINE,${xput:-}";
