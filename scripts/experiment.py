@@ -763,7 +763,7 @@ def go_replay(exp_folder):
 def main():
     atexit.register(cleanup)
 
-    parser = argparse.ArgumentParser("Makes concurrent requests to lambda URLs")
+    parser = argparse.ArgumentParser("Run memcached")
     parser.add_argument('-r', '--role', action='store', help='role', type=Role, choices=list(Role), default=Role.host)
     parser.add_argument('-n', '--name', action='store', help='Custom name for this experiment, defaults to datetime')
     parser.add_argument('-d', '--desc', action='store', help='Description/comments for this run', default="")
