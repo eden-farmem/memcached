@@ -25,8 +25,8 @@
 #include <sys/uio.h>
 #include <ctype.h>
 #include <stdarg.h>
-#ifdef WITH_KONA
-#include "klib.h"
+#ifdef EDEN
+#include "rmem/api.h"
 #endif
 
 /* some POSIX systems need the following definition
@@ -6436,10 +6436,7 @@ static void remove_pidfile(const char *pid_file) {
 
 }
 
-static void sig_handler(const int sig) { 
-#ifdef WITH_KONA
-    rdestroy();     // prints some stats
-#endif
+static void sig_handler(const int sig) {
     printf("Signal handled: %s.\n", strsignal(sig));
     exit(EXIT_SUCCESS);
 }
@@ -6568,7 +6565,7 @@ static bool preallocate = false;
 static int maxcore = 0;
 static char *username = NULL;
 static char *pid_file = NULL;
-static struct passwd *pw;
+// static struct passwd *pw;
 static struct rlimit rlim;
 static bool protocol_specified = false;
 static bool start_lru_maintainer = true;
@@ -7581,25 +7578,22 @@ static int memcached_init(void) {
 
 
     /* lose root privileges if we have them */
-    if (getuid() == 0 || geteuid() == 0) {
-        if (username == 0 || *username == '\0') {
-            fprintf(stderr, "can't run as root without the -u switch\n");
-            return -EX_USAGE;
-        }
-        if ((pw = getpwnam(username)) == 0) {
-            fprintf(stderr, "can't find the user %s to switch to\n", username);
-            return -EX_NOUSER;
-        }
-#ifdef WITH_KONA
-        /* Only change effective user id with Kona and keep real priviliges */
-        if (setegid(pw->pw_gid) < 0 || seteuid(pw->pw_uid) < 0) {
-#else
-        if (setgid(pw->pw_gid) < 0 || setuid(pw->pw_uid) < 0) {
-#endif
-            fprintf(stderr, "failed to assume identity of user %s\n", username);
-            return -EX_OSERR;
-        }
-    }
+    // (Eden/Shenango needs root privileges)
+    // if (getuid() == 0 || geteuid() == 0) {
+    //     if (username == 0 || *username == '\0') {
+    //         fprintf(stderr, "can't run as root without the -u switch\n");
+    //         return -EX_USAGE;
+    //     }
+    //     if ((pw = getpwnam(username)) == 0) {
+    //         fprintf(stderr, "can't find the user %s to switch to\n", username);
+    //         return -EX_NOUSER;
+    //     }
+    //     /* Only change effective user id with Eden and keep real priviliges */
+    //     if (setegid(pw->pw_gid) < 0 || seteuid(pw->pw_uid) < 0) {
+    //         fprintf(stderr, "failed to assume identity of user %s\n", username);
+    //         return -EX_OSERR;
+    //     }
+    // }
 
     /* Initialize Sasl if -S was specified */
     if (settings.sasl) {
@@ -7915,10 +7909,6 @@ int main(int argc, char **argv) {
     arg_parse(argv + 1);
 
     validate_settings();
-
-// #ifdef WITH_KONA
-//     rinit();
-// #endif
 
     ret = runtime_set_initializers(memcached_init, perthread_initializer, late_initializer);
     BUG_ON(ret);

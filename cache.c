@@ -7,12 +7,6 @@
 #include <signal.h>
 #endif
 
-#ifdef WITH_KONA
-/* Stricter gcc standards of Kona hide this method in the string.h 
- * This is to bypass compiler errors */
-extern char* strdup(const char*);
-#endif
-
 #include "cache.h"
 
 #ifndef NDEBUG

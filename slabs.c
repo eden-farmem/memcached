@@ -16,8 +16,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
-#ifdef WITH_KONA
-#include <klib.h>
+#ifdef EDEN
+#include "rmem/api.h"
 #endif
 
 static waitgroup_t slab_thread_wg;
@@ -123,7 +123,7 @@ void slabs_init(const size_t limit, const double factor, const bool prealloc, co
 
     if (prealloc) {
         /* Allocate everything in a big chunk with malloc */
-#ifdef WITH_KONA
+#ifdef EDEN
         mem_base = rmalloc(mem_limit);
 #else
         mem_base = malloc(mem_limit);
@@ -558,7 +558,7 @@ static void *memory_allocate(size_t size) {
 
     if (mem_base == NULL) {
         /* We are not using a preallocated large memory chunk */
-#ifdef WITH_KONA
+#ifdef EDEN
         ret = rmalloc(size);
 #else
         ret = malloc(size);

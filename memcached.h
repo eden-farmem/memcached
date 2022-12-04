@@ -460,14 +460,12 @@ extern struct settings settings;
 #define ITEM_HDR 128
 #endif
 
-#ifndef NO_DIRTY_ON_GET
-/* We are aiming to not dirty the items in this particular GET path. This means 
-* 1) not messing with refcount throughout the request 2) not bouncing the item 
-* in any queues that will change the next and prev pointers in the item */
-/* Only safe for the flat LRU case in the absence of maintainer threads */
-/* Supporting only for binary GET now */
-#define NO_DIRTY_ON_GET
-#endif
+// /* We are aiming to not dirty the items in this particular GET path. This means 
+// * 1) not messing with refcount throughout the request 2) not bouncing the item 
+// * in any queues that will change the next and prev pointers in the item */
+// /* Only safe for the flat LRU case in the absence of maintainer threads */
+// /* Supporting only for binary GET now */
+// #define NO_DIRTY_ON_GET
 
 /**
  * Structure for storing items within memcached.
