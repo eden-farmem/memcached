@@ -203,6 +203,9 @@ for exp in $LS_CMD; do
             rm -f ${exp}/eden_rmem_parsed
             rm -f ${exp}/runtime_parsed
             rm -f ${exp}/cpu_sar_parsed
+            rm -f ${exp}/iokstats_parsed
+            rm -f ${exp}/vmstat_parsed
+            rm -f ${exp}/fstat_parsed
         fi
 
         # RMEM
@@ -317,28 +320,16 @@ for exp in $LS_CMD; do
         # HEADER="$HEADER,FaultsR";       LINE="$LINE,${faultsr}";
         # # HEADER="$HEADER,FaultsW";       LINE="$LINE,${faultsw}";
         # HEADER="$HEADER,FaultsWP";      LINE="$LINE,${faultswp}";
-        HEADER="$HEADER,KFaults";       LINE="$LINE,${kfaults}";
-        HEADER="$HEADER,Evicts";        LINE="$LINE,${evicts}";
+        # HEADER="$HEADER,KFaults";       LINE="$LINE,${kfaults}";
+        # HEADER="$HEADER,Evicts";        LINE="$LINE,${evicts}";
         # HEADER="$HEADER,KEvicts";       LINE="$LINE,${kevicts}";
         # HEADER="$HEADER,EvPopped";      LINE="$LINE,${evpopped}";
-        HEADER="$HEADER,HitR";          LINE="$LINE,${hitr}";
-        HEADER="$HEADER,rCPU%";         LINE="$LINE,${reclaimcpu}";
+        # HEADER="$HEADER,HitR";          LINE="$LINE,${hitr}";
+        # HEADER="$HEADER,Mallocd";       LINE="$LINE,${mallocd}";
 
-        # HEADER="$HEADER,NetReads";      LINE="$LINE,${netreads}";
+        HEADER="$HEADER,NetReads";      LINE="$LINE,${netreads}";
         HEADER="$HEADER,NetWrites";     LINE="$LINE,${netwrite}";
-        HEADER="$HEADER,Mallocd";       LINE="$LINE,${mallocd}";
-        # HEADER="$HEADER,MaxRSS";      LINE="$LINE,$((mempressure/1048576))M";
-        # HEADER="$HEADER,Steals";      LINE="$LINE,${steals}";
-        # HEADER="$HEADER,HSteals";      LINE="$LINE,${hsteals}";
-        # HEADER="$HEADER,Waits";       LINE="$LINE,${waitretries}";
-        # HEADER="$HEADER,HWaits";       LINE="$LINE,${hwaitretries}";
-
-        # HEADER="$HEADER,UFFDCopy";      LINE="$LINE,${uffd_copy_cost}";
-        # HEADER="$HEADER,UIdle%";        LINE="$LINE,${user_idle_per}";
-        # HEADER="$HEADER,KIdle%";        LINE="$LINE,${kernel_idle_per}";
-        # HEADER="$HEADER,AnnotHit";      LINE="$LINE,$((pf_annot_hits+pf_posted))";
-        # HEADER="$HEADER,AnnotMiss";     LINE="$LINE,${pf_posted}";
-        # HEADER="$HEADER,XputAcc";       LINE="$LINE,${xput_accounted}";
+        HEADER="$HEADER,rCPU%";         LINE="$LINE,${reclaimcpu}";
 
         # IOK
         # HEADER="$HEADER,IOK_RX";        LINE="$LINE,${iokoffered}";

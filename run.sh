@@ -71,6 +71,8 @@ then
     # fastswap
     HOST_SSH="sc40"
     HOST_IP="192.168.100.116"
+    FSWAP_HOST_IP="192.168.0.40"    #FIXME
+    HOST_NIC_PCI="0000:d8:00.1"
     RCNTRL_IP="192.168.0.7"
     MEMSERVER_IP=$RCNTRL_IP
 fi
@@ -101,6 +103,7 @@ CONNS=100
 MPPS=2
 NKEYS=10000000
 ZIPFS=0.1
+START_MPPS=1
 
 # save settings
 CFGSTORE=
@@ -127,6 +130,7 @@ case $i in
     # DEBUG_FLAG="--debug"
     # CFLAGS="$CFLAGS -DDEBUG"
     CONNS=5
+    START_MPPS=1e-2
     MPPS=1e-2
     LMEM=500000     # 500 KB
     NKEYS=10K
@@ -387,7 +391,7 @@ if [[ $FASTSWAP ]]; then
             --memserver-ssh=${MEMSERVER_SSH}    \
             --memserver-ip=${MEMSERVER_IP}      \
             --memserver-port=${MEMSERVER_PORT}  \
-            --host-ip=${HOST_IP}                \
+            --host-ip=${FSWAP_HOST_IP}          \
             --host-ssh=${HOST_SSH}              \
             --backend=${BACKEND}
     fi
@@ -496,7 +500,8 @@ fi
 echo "ACTION: make sure the client is configured with ${NKEYS} keys"
 
 # sync times on servers
-echo "Syncing clocks with $CLIENT_SSH"
+echo "Syncing clocks with sc30 (ntp root)"
+ssh $HOST_SSH "sudo systemctl stop ntp; sudo ntpd -gq; sudo systemctl start ntp;"
 ssh $CLIENT_SSH "sudo systemctl stop ntp; sudo ntpd -gq; sudo systemctl start ntp;"
 
 # for retry in {1..3}; do
@@ -636,7 +641,7 @@ static_arp ${MCACHED_SERVER_IP} ${MCACHED_SERVER_MAC}"""
         args="--config ${CLIENT_EXPDIR}/synthetic.config ${MCACHED_SERVER_IP}:${MCACHED_SERVER_PORT}"
         args="$args ${WMFLAG} --output=normal --protocol memcached --mode runtime-client --threads 100"
         args="$args --runtime ${RUNTIME} --mean=842 --distribution=zero --mpps=${MPPS} --samples=1 "
-        args="$args --transport udp --start_mpps 1 --zipfs ${ZIPFS}"
+        args="$args --transport udp --start_mpps ${START_MPPS} --zipfs ${ZIPFS}"
         echo sudo ${wrapper} ${CLIENT_SYNTHETIC_APP} ${args}
         ssh ${CLIENT_SSH} "cd ${CLIENT_EXPDIR} && sudo ${wrapper} ${CLIENT_SYNTHETIC_APP} ${args}" > client.out < /dev/null
         popd

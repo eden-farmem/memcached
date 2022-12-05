@@ -51,19 +51,19 @@ esac
 done
 
 ## Configs
-# Small
-# NKEYS=10000000
-# CORES=5
-# MPPS=2
-# EDEN_MAX=7174
-# FASTSWAP_MAX=8000
+## Small
+NKEYS=10000000
+CORES=5
+MPPS=2
+EDEN_MAX=7174
+FASTSWAP_MAX=9895
 
-# Large
-NKEYS=30000000
-CORES=10
-MPPS=5
-EDEN_MAX=21522
-FASTSWAP_MAX=
+## Large
+# NKEYS=30000000
+# CORES=10
+# MPPS=5
+# EDEN_MAX=21522
+# FASTSWAP_MAX=
 
 # create a stop button
 touch __running__
@@ -103,7 +103,7 @@ configure_max_load() {
     local lmem=$3
     MPPS=
     case $kind in
-    "uthr")             MPPS=$((2+cores));;
+    "uthr")             MPPS=2;;
     "eden-nh")          MPPS=2;;
     "eden-bh")          MPPS=2;;
     "eden")             MPPS=2;;
@@ -168,7 +168,7 @@ run_vary_lmem() {
     # run
     configure_max_local_mem "$kind" "$cores"
     # for memp in `seq 20 10 100`; do
-    for memp in 50; do
+    # for memp in 20; do
         check_for_stop
 
         # determine local mem
@@ -183,8 +183,8 @@ run_vary_lmem() {
         configure_max_load "$kind" "$cores" "$memp"
         
         # run
-        echo "Running ${cores} cores, ${mem} mem, zipfs ${zs}, mpps ${mpps}"
-        bash run.sh ${OPTS} ${FFLAG} -c=${cores} -lm=${lmem} -lmp=${memp} ${WFLAG}   \
+        echo "Running ${cores} cores, ${lmem} mem, zipfs ${zs}, mpps ${mpps}"
+        bash run.sh ${OPTS} ${FFLAG} -c=${cores} ${lmemopt} ${WFLAG}   \
             -d="""${desc}""" -fl="""${CFLAGS}""" -zs=${zparams} -ld=${MPPS} -k=${NKEYS}
     done
 }
@@ -208,12 +208,12 @@ for zs in 1; do
         # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
         # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
         # run_vary_lmem "fswap"   "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
-        # run_vary_lmem "fswap"   "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
-        run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
-        run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
-        run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
-        run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "SC"   "$evg" "$nod"
-        run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "LRU"  "$evg" "$nod"
+        run_vary_lmem "fswap"   "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
+        # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
+        # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
+        # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
+        # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "SC"   "$evg" "$nod"
+        # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "LRU"  "$evg" "$nod"
     done
 done
 
