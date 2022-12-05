@@ -248,6 +248,7 @@ for exp in $LS_CMD; do
             waitretries=$(csv_column_mean "$edenout" "wait_retries")
             hwaitretries=$(csv_column_mean "$edenout" "wait_retries_h")
             # madvd=$(csv_column_max "$edenout" "rmadv_size_mb")
+            memused=$(csv_column_max "$edenout" "memory_used_mb")
             annothits=$(csv_column_mean "$edenout" "annot_hits")
             reclaimcpu=$(csv_column_mean "$edenout" "cpu_per_h")
             hitr=
@@ -268,6 +269,7 @@ for exp in $LS_CMD; do
                     -o ${vmstat_out} -st ${rstart} -et ${rend}
             fi
             faults=$(csv_column_mean "$vmstat_out" "pgmajfault")
+            memused=$(csv_column_max "$vmstat_out" "nr_anon_pages_mb")
             netreads=$(csv_column_mean "$fstat_out" "loads")
             netwrite=$(csv_column_mean "$fstat_out" "succ_stores")
 
@@ -327,9 +329,11 @@ for exp in $LS_CMD; do
         # HEADER="$HEADER,HitR";          LINE="$LINE,${hitr}";
         # HEADER="$HEADER,Mallocd";       LINE="$LINE,${mallocd}";
 
-        HEADER="$HEADER,NetReads";      LINE="$LINE,${netreads}";
-        HEADER="$HEADER,NetWrites";     LINE="$LINE,${netwrite}";
+        # HEADER="$HEADER,NetReads";      LINE="$LINE,${netreads}";
+        # HEADER="$HEADER,NetWrites";     LINE="$LINE,${netwrite}";
         HEADER="$HEADER,rCPU%";         LINE="$LINE,${reclaimcpu}";
+        # HEADER="$HEADER,Mallocd";       LINE="$LINE,${mallocd}";
+        HEADER="$HEADER,MemUsed";           LINE="$LINE,${memused}M";
 
         # IOK
         # HEADER="$HEADER,IOK_RX";        LINE="$LINE,${iokoffered}";
