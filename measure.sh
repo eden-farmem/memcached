@@ -16,6 +16,7 @@ ROOTDIR=${SCRIPT_DIR}/../..
 TMP_PFX=tmp_mcached_
 WARMUP=1
 WFLAG="--warmup"
+CLIENT_SSH=sc32
 
 source ${ROOTDIR}/scripts/utils.sh
 
@@ -103,11 +104,11 @@ configure_max_load() {
     local lmem=$3
     MPPS=
     case $kind in
-    "uthr")             MPPS=2;;
-    "eden-nh")          MPPS=2;;
-    "eden-bh")          MPPS=2;;
-    "eden")             MPPS=2;;
-    "fswap")            MPPS=2;;
+    "uthr")             MPPS=5;;
+    "eden-nh")          MPPS=3;;
+    "eden-bh")          MPPS=3;;
+    "eden")             MPPS=3;;
+    "fswap")            MPPS=3;;
     *)                  echo "Unknown fault kind"; exit;;
     esac
 }
@@ -164,11 +165,16 @@ run_vary_lmem() {
     # OPTS="$OPTS --safemode"
     rebuild_with_current_config
     echo $OPTS
+
+    # sync times on servers
+    echo "Syncing clocks on host and client"
+    sudo systemctl stop ntp; sudo ntpdate -s time.nist.gov; sudo systemctl start ntp
+    ssh $CLIENT_SSH "sudo systemctl stop ntp; sudo ntpdate -s time.nist.gov; sudo systemctl start ntp"
     
     # run
     configure_max_local_mem "$kind" "$cores"
-    # for memp in `seq 20 10 100`; do
-    for memp in 20; do
+    for memp in `seq 20 10 100`; do
+    # for memp in 40; do
         check_for_stop
 
         # determine local mem
@@ -193,10 +199,10 @@ run_vary_lmem() {
 ebs=        # set eviction batch size
 evp=        # set eviction policy
 evg=4       # set eviction gens
-nod=        # set nodirty
+nod=1       # set nodirty
 for zs in 1; do
     for c in $CORES; do
-        desc="test"
+        desc="rdma"
         # run_vary_lmem "uthr"    "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
         # run_vary_lmem "eden-nh" "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
         # run_vary_lmem "eden"    "local" "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
@@ -210,8 +216,9 @@ for zs in 1; do
         # run_vary_lmem "fswap"   "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
         # run_vary_lmem "fswap"   "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
         # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
-        run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
-        run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
+        # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
+        # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
+        # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
         # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "SC"   "$evg" "$nod"
         # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "LRU"  "$evg" "$nod"
     done

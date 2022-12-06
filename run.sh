@@ -499,11 +499,6 @@ fi
 # NKEYS is not automatically configurable
 echo "ACTION: make sure the client is configured with ${NKEYS} keys"
 
-# sync times on servers
-echo "Syncing clocks with sc30 (ntp root)"
-ssh $HOST_SSH "sudo systemctl stop ntp; sudo ntpd -gq; sudo systemctl start ntp;"
-ssh $CLIENT_SSH "sudo systemctl stop ntp; sudo ntpd -gq; sudo systemctl start ntp;"
-
 # for retry in {1..3}; do
 for retry in 1; do
     # prepare for run
@@ -634,13 +629,14 @@ disable_watchdog 1
 static_arp ${HOST_IP} ${HOST_MAC}
 static_arp ${CLIENT_IP} ${CLIENT_MAC}
 static_arp ${MCACHED_SERVER_IP} ${MCACHED_SERVER_MAC}"""
+        SAMPLES=$((MPPS-START_MPPS))
         echo "$synthetic_cfg" > synthetic.config
         ssh ${CLIENT_SSH} "mkdir -p ${CLIENT_EXPDIR}"           # make dir on client
         scp synthetic.config ${CLIENT_SSH}:${CLIENT_EXPDIR}/    # copy client shenango config
         wrapper="numactl -N ${CLIENT_NUMA_NODE} -m ${CLIENT_NUMA_NODE}"
         args="--config ${CLIENT_EXPDIR}/synthetic.config ${MCACHED_SERVER_IP}:${MCACHED_SERVER_PORT}"
         args="$args ${WMFLAG} --output=normal --protocol memcached --mode runtime-client --threads 100"
-        args="$args --runtime ${RUNTIME} --mean=842 --distribution=zero --mpps=${MPPS} --samples=1 "
+        args="$args --runtime ${RUNTIME} --mean=842 --distribution=zero --mpps=${MPPS} --samples=${SAMPLES} "
         args="$args --transport udp --start_mpps ${START_MPPS} --zipfs ${ZIPFS}"
         echo sudo ${wrapper} ${CLIENT_SYNTHETIC_APP} ${args}
         ssh ${CLIENT_SSH} "cd ${CLIENT_EXPDIR} && sudo ${wrapper} ${CLIENT_SYNTHETIC_APP} ${args}" > client.out < /dev/null
