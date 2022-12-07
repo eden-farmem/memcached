@@ -110,6 +110,10 @@ case $i in
     DESC="${i#*=}"
     ;;
 
+    -sm=*|--sample=*)
+    SAMPLEID="${i#*=}"
+    ;;
+
     -b|--basic)
     BASIC=1
     ;;
@@ -156,6 +160,7 @@ for exp in $LS_CMD; do
     rmem=$(cat $exp/settings | grep "rmem:" | awk -F: '{ print $2 }')
     backend=$(cat $exp/settings | grep "backend:" | awk -F: '{ print $2 }')
     zipfs=$(cat $exp/settings | grep "zipfs:" | awk -F: '{ print $2 }')
+    esamples=$(cat $exp/settings | grep "samples:" | awk -F: '{ print $2 }')
     nodirty=$(cat $exp/settings | grep "nodirty:" | awk -F: '{ print $2 }')
     evictbs=$(cat $exp/settings | grep "evictbatch:" | awk -F: '{ print $2 }')
     evictpol=$(cat $exp/settings | grep "evictpolicy:" | awk -F: '{ print $2 }')
@@ -165,6 +170,7 @@ for exp in $LS_CMD; do
     backend=${backend:-none}
     rmem=${rmem:-none}
     evictpol=${evictpol:-NONE}
+    esamples=${esamples:-1}
 
     # apply filters
     if [[ $THREADS ]] && [ "$THREADS" != "$threads" ];      then    continue;   fi
@@ -185,16 +191,39 @@ for exp in $LS_CMD; do
         preload_end=$(cat $exp/preload_end_time 2>/dev/null)
         ptime=$((preload_end-preload_start))
 
-        rstart=$(cat $exp/sample1_start_time 2>/dev/null)
+        # figure out best sample
+        samples=$(cat $exp/client.out | grep zero)
+        nsamples=$(count "$samples")
+        if [ "$esamples" != "$nsamples" ]; then
+            echo "ERROR: samples not equal to nsamples. found: $nsamples, expected: $esamples"
+        fi
+        sampleid=$SAMPLEID
+        if [ -z "$sampleid" ]; then 
+            # take the best sample if not provided
+            acheived_vals=$(echo "$samples" | awk -F, '{ print $3 }')
+            best_achieved=$(max "$acheived_vals")
+            sampleid=$(echo "$samples" | grep -n -m 1 "$best_achieved" | sed  's/\([0-9]*\).*/\1/')
+        fi
+        sample=$(echo "$samples" | awk 'NR=='$sampleid'')
+        if [ -z "$sample" ]; then
+            echo "ERROR: sample for id: ${sampleid} not found"
+        fi
+
+        # get xput values
+        offered=$(echo "$sample" | awk -F, '{ print $2 }')
+        acheived=$(echo "$sample" | awk -F, '{ print $3 }')
+        # echo $offered $acheived $sampleid
+
+        # get timestamps of the best sample
+        sid=$((sampleid-1))
+        if [ ! -f "$exp/sample${sid}_start_time" ]; then
+            echo "WARNING: timestamps for sample ${sampleid} not found"
+        fi
+        rstart=$(cat $exp/sample${sid}_start_time 2>/dev/null)
         if [[ $rstart ]]; then rstart=$((rstart+RAMPUP_SECS));  fi
-        rend=$(cat $exp/sample1_end_time 2>/dev/null)
+        rend=$(cat $exp/sample${sid}_end_time 2>/dev/null)
         if [[ $rend ]]; then  rend=$((rend-1)); fi
         rtime=$((rend-rstart))
-
-        # xput
-        offered=$(cat $exp/client.out | grep zero | awk -F, '{ print $2 }' | xargs)
-        achieved=$(cat $exp/client.out | grep zero | awk -F, '{ print $3 }' | xargs)
-        nkeys=$(cat $exp/client.out | grep "NVALUES:" | awk -F: '{ print $2 }' | xargs)
 
         # if runtime is zero, exclude  
         if [[ $FILTER_GOOD ]] && (! [[ $rtime ]] || [ $rtime -le 0 ]); then continue; fi
@@ -313,8 +342,8 @@ for exp in $LS_CMD; do
     HEADER="$HEADER,Runtime";       LINE="$LINE,${rtime}";
 
     # CLIENT
-    HEADER="$HEADER,Offered";       LINE="$LINE,${iokoffered}";
-    HEADER="$HEADER,Achieved";      LINE="$LINE,${iokachieved}";
+    HEADER="$HEADER,Offered";       LINE="$LINE,${offered}";
+    HEADER="$HEADER,Achieved";      LINE="$LINE,${acheived}";
 
     if [ -z "$BASIC" ]; then
         # RMEM

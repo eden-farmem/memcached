@@ -1,0 +1,6 @@
+
+
+## Fastswap golden runs
+bash show.sh 12-06 -r=fastswap -d=herobaseline  # fastswap baseline
+bash show.sh 12-06 -r=none -d=maxperf           # max perf
+

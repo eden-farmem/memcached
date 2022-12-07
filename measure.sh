@@ -57,7 +57,7 @@ NKEYS=10000000
 CORES=5
 MPPS=2
 EDEN_MAX=7174
-FASTSWAP_MAX=9895
+FASTSWAP_MAX=9500
 
 ## Large
 # NKEYS=30000000
@@ -104,11 +104,11 @@ configure_max_load() {
     local lmem=$3
     MPPS=
     case $kind in
-    "uthr")             MPPS=5;;
-    "eden-nh")          MPPS=3;;
-    "eden-bh")          MPPS=3;;
-    "eden")             MPPS=3;;
-    "fswap")            MPPS=3;;
+    "uthr")             MPPS=4;;
+    "eden-nh")          MPPS=4;;
+    "eden-bh")          MPPS=4;;
+    "eden")             MPPS=4;;
+    "fswap")            MPPS=4;;
     *)                  echo "Unknown fault kind"; exit;;
     esac
 }
