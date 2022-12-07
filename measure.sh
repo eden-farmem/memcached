@@ -173,8 +173,8 @@ run_vary_lmem() {
     
     # run
     configure_max_local_mem "$kind" "$cores"
-    for memp in `seq 20 10 100`; do
-    # for memp in 40; do
+    # for memp in `seq 20 10 100`; do
+    for memp in 40 80; do
         check_for_stop
 
         # determine local mem
@@ -216,10 +216,11 @@ for zs in 1; do
         # run_vary_lmem "fswap"   "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
         # run_vary_lmem "fswap"   "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
         # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
-        # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
+        run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
+        run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "8"    "SC"   "$evg" "$nod"
         # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
-        # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
-        # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "SC"   "$evg" "$nod"
+        run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
+        run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "SC"   "$evg" "$nod"
         # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "LRU"  "$evg" "$nod"
     done
 done

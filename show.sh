@@ -171,6 +171,7 @@ for exp in $LS_CMD; do
     rmem=${rmem:-none}
     evictpol=${evictpol:-NONE}
     esamples=${esamples:-1}
+    nodirty=${nodirty:-0}
 
     # apply filters
     if [[ $THREADS ]] && [ "$THREADS" != "$threads" ];      then    continue;   fi
@@ -348,26 +349,26 @@ for exp in $LS_CMD; do
     if [ -z "$BASIC" ]; then
         # RMEM
         HEADER="$HEADER,Faults";        LINE="$LINE,${faults}";
-        # HEADER="$HEADER,FaultsR";       LINE="$LINE,${faultsr}";
-        # # HEADER="$HEADER,FaultsW";       LINE="$LINE,${faultsw}";
-        # HEADER="$HEADER,FaultsWP";      LINE="$LINE,${faultswp}";
-        # HEADER="$HEADER,KFaults";       LINE="$LINE,${kfaults}";
-        # HEADER="$HEADER,Evicts";        LINE="$LINE,${evicts}";
-        # HEADER="$HEADER,KEvicts";       LINE="$LINE,${kevicts}";
-        # HEADER="$HEADER,EvPopped";      LINE="$LINE,${evpopped}";
-        # HEADER="$HEADER,HitR";          LINE="$LINE,${hitr}";
-        # HEADER="$HEADER,Mallocd";       LINE="$LINE,${mallocd}";
+        HEADER="$HEADER,FaultsR";       LINE="$LINE,${faultsr}";
+        HEADER="$HEADER,FaultsW";       LINE="$LINE,${faultsw}";
+        HEADER="$HEADER,FaultsWP";      LINE="$LINE,${faultswp}";
+        HEADER="$HEADER,KFaults";       LINE="$LINE,${kfaults}";
+        HEADER="$HEADER,Evicts";        LINE="$LINE,${evicts}";
+        HEADER="$HEADER,KEvicts";       LINE="$LINE,${kevicts}";
+        HEADER="$HEADER,EvPopped";      LINE="$LINE,${evpopped}";
+        HEADER="$HEADER,HitR";          LINE="$LINE,${hitr}";
+        HEADER="$HEADER,Mallocd";       LINE="$LINE,${mallocd}";
 
-        # HEADER="$HEADER,NetReads";      LINE="$LINE,${netreads}";
-        # HEADER="$HEADER,NetWrites";     LINE="$LINE,${netwrite}";
+        HEADER="$HEADER,NetReads";      LINE="$LINE,${netreads}";
+        HEADER="$HEADER,NetWrites";     LINE="$LINE,${netwrite}";
         HEADER="$HEADER,rCPU%";         LINE="$LINE,${reclaimcpu}";
-        # HEADER="$HEADER,Mallocd";       LINE="$LINE,${mallocd}";
-        HEADER="$HEADER,MemUsed";           LINE="$LINE,${memused}M";
+        HEADER="$HEADER,Mallocd";       LINE="$LINE,${mallocd}";
+        HEADER="$HEADER,MemUsed";       LINE="$LINE,${memused}M";
 
         # IOK
         # HEADER="$HEADER,IOK_RX";        LINE="$LINE,${iokoffered}";
         # HEADER="$HEADER,IOK_TX";        LINE="$LINE,${iokachieved}";
-        # HEADER="$HEADER,IOK_CPU";       LINE="$LINE,${iokcpu}";
+        HEADER="$HEADER,IOK_CPU";       LINE="$LINE,${iokcpu}";
     fi
 
     HEADER="$HEADER,Desc";          LINE="$LINE,${desc:0:30}";    
