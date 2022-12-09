@@ -428,8 +428,8 @@ static void do_item_unlink_q(item *it) {
     assert(it->next != it);
     assert(it->prev != it);
 
-    if (it->next) it->next->prev = it->prev;
-    if (it->prev) it->prev->next = it->next;
+    if (it->next) { possible_write_fault_on(it->next); it->next->prev = it->prev; }
+    if (it->prev) { possible_write_fault_on(it->prev); it->prev->next = it->next; }
     sizes[it->slabs_clsid]--;
 #ifdef EXTSTORE
     if (it->it_flags & ITEM_HDR) {
@@ -508,6 +508,7 @@ void do_item_remove(item *it) {
     assert((it->it_flags & ITEM_SLABBED) == 0);
     assert(it->refcount > 0);
 
+    possible_write_fault_on(&it->refcount);
     if (refcount_decr(it) == 0) {
         item_free(it);
     }
@@ -534,6 +535,7 @@ void do_item_update(item *it) {
 
     /* Hits to COLD_LRU immediately move to WARM. */
     if (settings.lru_segmented) {
+        possible_write_fault_on(it);
         assert((it->it_flags & ITEM_SLABBED) == 0);
         if ((it->it_flags & ITEM_LINKED) != 0) {
             if (ITEM_lruid(it) == COLD_LRU && (it->it_flags & ITEM_ACTIVE)) {
@@ -1805,6 +1807,7 @@ item *do_item_crawl_q(item *it) {
         it->next->prev = it;
         /* New it->prev now, if we're not at the head. */
         if (it->prev) {
+            possible_write_fault_on(it->prev);
             it->prev->next = it;
         }
     }
