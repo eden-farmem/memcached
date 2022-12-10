@@ -4,3 +4,24 @@
 bash show.sh 12-06 -r=fastswap -d=herobaseline  # fastswap baseline
 bash show.sh 12-06 -r=none -d=maxperf           # max perf
 
+## Eden runs
+
+bash show.sh 12-10-0    -r=eden-bh -evb=1 -evp=NONE -d=hero
+bash show.sh 12-10-0    -r=eden-bh -evb=8 -evp=NONE -d=hero
+<!-- bash show.sh 12-10-0    -r=eden-bh -evb=8 -evp=SC   -d=hero (same as above, can use for error bars) -->
+<!-- bash show.sh 12-10-[01] -r=eden    -evb=8 -evp=SC   -d=hero (same as above, can use for error bars) -->
+bash show.sh 12-10-0    -r=eden-bh -evb=8 -evp=SC   -d=hero TODO
+bash show.sh 12-10-[01] -r=eden    -evb=8 -evp=SC   -d=hero TODO
+
+
+## Earlier results
+System,Throughput
+No Fswap,3753614
+Fswap,977411
+No Eden,3632334
+Eden (BH),902511
+Eden (BH+EVB),1216320
+Eden (BH+EVB+SC),1288131,
+Eden (NBH),863223
+Eden (NBH+EVB),1115064
+Eden (NBH+EVB+SC),1304768

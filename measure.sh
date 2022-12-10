@@ -14,8 +14,6 @@ usage="\n
 SCRIPT_DIR=`dirname "$0"`
 ROOTDIR=${SCRIPT_DIR}/../..
 TMP_PFX=tmp_mcached_
-WARMUP=1
-WFLAG="--warmup"
 CLIENT_SSH=sc32
 
 source ${ROOTDIR}/scripts/utils.sh
@@ -52,19 +50,41 @@ esac
 done
 
 ## Configs
+## Very small
+# NKEYS=1000000
+# CORES=1
+# START_MPPS=0
+# END_MPPS=1      # for 40%
+# SAMPLES=1
+# EDEN_MAX=717
+# FASTSWAP_MAX=950
+# WARMUP=
+# RUNTIME=30
+
 ## Small
 NKEYS=10000000
 CORES=5
-MPPS=2
+START_MPPS=0.5    # for 40%
+END_MPPS=2 
+SAMPLES=10
+# START_MPPS=2.5
+# END_MPPS=4      # for 100%
+# SAMPLES=6
 EDEN_MAX=7174
 FASTSWAP_MAX=9500
+WARMUP=1
+RUNTIME=30
 
 ## Large
 # NKEYS=30000000
 # CORES=10
-# MPPS=5
+# START_MPPS=0.5        # TODO
+# END_MPPS=2            # TODO
+# SAMPLES=5
 # EDEN_MAX=21522
 # FASTSWAP_MAX=
+# WARMUP=1
+# RUNTIME=30
 
 # create a stop button
 touch __running__
@@ -99,18 +119,12 @@ configure_for_backend() {
 }
 
 configure_max_load() {
-    local kind=$1
-    local cores=$2
-    local lmem=$3
-    MPPS=
-    case $kind in
-    "uthr")             MPPS=4;;
-    "eden-nh")          MPPS=4;;
-    "eden-bh")          MPPS=4;;
-    "eden")             MPPS=4;;
-    "fswap")            MPPS=4;;
-    *)                  echo "Unknown fault kind"; exit;;
-    esac
+    # for Small dataset
+    local memp=$1
+    if [ $memp -lt 50 ]; then       START_MPPS=0.5;     END_MPPS=2;
+    elif [ $memp -lt 80 ]; then     START_MPPS=1;       END_MPPS=2.5;
+    else                            START_MPPS=1.5;     END_MPPS=3.5;
+    fi
 }
 
 configure_max_local_mem() {
@@ -139,7 +153,7 @@ configure_for_evict_policy() {
 }
 
 rebuild_with_current_config() {
-    bash run.sh ${OPTS} -fl="""$CFLAGS""" ${WFLAG} --force --buildonly ${NOPIE}
+    bash run.sh ${OPTS} ${WFLAG} --force --buildonly ${NOPIE}
 }
 
 run_vary_lmem() {
@@ -158,11 +172,13 @@ run_vary_lmem() {
     configure_for_fault_kind "$kind"
     configure_for_backend "$bkend"
     configure_for_evict_policy "$evp"
-    if [[ $evictbs ]];          then  OPTS="$OPTS --batchevict=${evictbs}"; fi
-    if [[ $evgens ]];           then  OPTS="$OPTS --evictgens=${evgens}"; fi
-    if [[ $nodirty ]];          then  OPTS="$OPTS --nodirty"; fi
+    if [[ $evictbs ]];  then  OPTS="$OPTS --batchevict=${evictbs}"; fi
+    if [[ $evgens ]];   then  OPTS="$OPTS --evictgens=${evgens}"; fi
+    if [[ $nodirty ]];  then  OPTS="$OPTS --nodirty"; fi
+    if [[ $WARMUP ]];   then  OPTS="$OPTS --warmup"; fi
     # OPTS="$OPTS --sampleepochs"
     # OPTS="$OPTS --safemode"
+    # OPTS="$OPTS --pfsamples"
     rebuild_with_current_config
     echo $OPTS
 
@@ -174,8 +190,11 @@ run_vary_lmem() {
     # run
     configure_max_local_mem "$kind" "$cores"
     # for memp in `seq 20 10 100`; do
-    for memp in 40 80; do
+    for memp in 40; do
         check_for_stop
+
+        # determine load
+        configure_max_load "$memp"
 
         # determine local mem
         lmemopt=
@@ -184,14 +203,11 @@ run_vary_lmem() {
             lmem=$((lmem_mb*1024*1024))
             lmemopt="-lm=${lmem} -lmp=${memp}"
         fi
-
-        #determine mpps
-        configure_max_load "$kind" "$cores" "$memp"
         
         # run
-        echo "Running ${cores} cores, ${lmem} mem, zipfs ${zs}, mpps ${mpps}"
-        bash run.sh ${OPTS} ${FFLAG} -c=${cores} ${lmemopt} ${WFLAG}   \
-            -d="""${desc}""" -fl="""${CFLAGS}""" -zs=${zparams} -ld=${MPPS} -k=${NKEYS}
+        echo "Running ${cores} cores, ${lmem} mem, zipfs ${zs}, mpps ${START_MPPS} to ${END_MPPS}"
+        bash run.sh ${OPTS} ${FFLAG} -c=${cores} ${lmemopt} ${WFLAG} -d="""${desc}""" \
+            -zs=${zparams} -lds=${START_MPPS} -lde=${END_MPPS} -k=${NKEYS} -sm=${SAMPLES} -rd=${RUNTIME}
     done
 }
 
@@ -202,26 +218,29 @@ evg=4       # set eviction gens
 nod=1       # set nodirty
 for zs in 1; do
     for c in $CORES; do
-        desc="rdma"
-        # run_vary_lmem "uthr"    "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
-        # run_vary_lmem "eden-nh" "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
-        # run_vary_lmem "eden"    "local" "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
-        # run_vary_lmem "eden"    "local" "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
-        # run_vary_lmem "eden"    "local" "$c" "$zs" "$ebs" "SC"   "$evg" "$nod"
-        # run_vary_lmem "eden"    "local" "$c" "$zs" "$ebs" "LRU"  "$evg" "$nod"
-        # run_vary_lmem "eden-nh" "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
-        # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
-        # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
-        # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
-        # run_vary_lmem "fswap"   "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
-        # run_vary_lmem "fswap"   "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
-        # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
-        run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
-        run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "8"    "SC"   "$evg" "$nod"
-        # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
-        run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
-        run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "SC"   "$evg" "$nod"
-        # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "LRU"  "$evg" "$nod"
+        for nod in 1; do 
+            desc="hero"
+            # run_vary_lmem "uthr"    "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
+            # run_vary_lmem "eden-nh" "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
+            # run_vary_lmem "eden-bh" "local"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
+            # run_vary_lmem "eden"    "local" "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
+            # run_vary_lmem "eden"    "local" "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
+            # run_vary_lmem "eden"    "local" "$c" "$zs" "$ebs" "SC"   "$evg" "$nod"
+            # run_vary_lmem "eden"    "local" "$c" "$zs" "$ebs" "LRU"  "$evg" "$nod"
+            # run_vary_lmem "eden-nh" "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
+            # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
+            # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
+            # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
+            # run_vary_lmem "fswap"   "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
+            # run_vary_lmem "fswap"   "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
+            # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
+            # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
+            # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "32"    "SC"   "$evg" "$nod"
+            # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
+            # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
+            # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "SC"   "$evg" "$nod"
+            # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "8"    "LRU"  "$evg" "$nod"
+        done
     done
 done
 

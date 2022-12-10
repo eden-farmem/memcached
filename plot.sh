@@ -78,7 +78,7 @@ add_plot_group() {
     plots="$plots -d $datafile"
 }
 
-# performance with kona/page faults
+# overall performance
 if [ "$PLOTID" == "1" ]; then
     plotdir=$PLOTDIR/$PLOTID
     mkdir -p $plotdir
@@ -177,6 +177,131 @@ if [ "$PLOTID" == "1" ]; then
     # Combine
     plotname=${plotdir}/${cfg}.$PLOTEXT
     montage -tile 3x0 -geometry +5+5 -border 5 $files ${plotname}
+    display ${plotname} &
+fi
+
+# debugging performance with xput time series
+if [ "$PLOTID" == "2" ]; then
+    plotdir=$PLOTDIR/$PLOTID
+    mkdir -p $plotdir
+    plots=
+    files=
+
+    # runs (need all samples parsed beforehand)
+    # runs=$(bash show.sh 12-07-1[34] -b -lmp=40 | awk '{ print $1 }' | tail -n+2)
+    # runs=$(bash show.sh 12-07-16 -r=none -b | awk '{ print $1 }' | tail -n+2)
+    # runs=$(bash show.sh 12-07-17-05 -b -lmp=40 | awk '{ print $1 }' | tail -n+2)
+    # runs=$(bash show.sh 12-07 -b -d=small | awk '{ print $1 }' | tail -n+2)
+    # runs="run-12-07-23-46-08"
+    # runs="run-12-08-02-29-00"
+    # runs="run-12-08-12-05-48"
+    # runs="run-12-08-05-16-53"
+    # runs="run-12-08-13-23-39"
+    # runs="run-12-08-14-15-56"
+    # runs="run-12-09-19-35-28"
+    # runs="run-12-09-19-46-50"
+    # runs="run-12-09-19-58-20"
+    runs="run-12-10-00-58-46"
+    
+    # statistic
+    COLNAME=TX_PULLED; LABEL="Xput"
+    # COLNAME=RX_PULLED
+
+    # for each run
+    for exp in `echo "$runs"`; do
+        plots=
+
+        samples=$(cat ${DATADIR}/$exp/settings | grep "samples:" | awk -F: '{ print $2 }')
+        for sid in `seq 0 1 "$samples"`; do
+            iokin=${DATADIR}/${exp}/iokernel.log
+            iokout=${DATADIR}/${exp}/iokstats_parsed_s${sid}
+            rstart=$(cat ${DATADIR}/$exp/sample${sid}_start_time 2>/dev/null)
+            rend=$(cat ${DATADIR}/$exp/sample${sid}_end_time 2>/dev/null)
+            if [ ! -f "$f" ]; then
+                python ${ROOT_SCRIPTS_DIR}/parse_shenango_iok.py -i ${iokin} -o ${iokout}   \
+                    -st=${rstart} -et ${rend} 
+            fi
+
+            # echo $f, $sid
+            plots="$plots -d $iokout -l $sid"
+        done
+
+        #plot time series
+        YLIMS="--ymin 0 --ymax 2"
+        YLABEL="${LABEL} MOPS"
+        YMUL="--ymul 1e-6"
+        plotname=${plotdir}/${COLNAME}_tseries_${exp}.${PLOTEXT}
+        if [[ $FORCE_PLOTS ]] || [ ! -f "$plotname" ]; then
+            python3 ${ROOTDIR}/scripts/plot.py ${plots}                 \
+                -yc "${COLNAME}" -yl "${YLABEL}" ${YMUL} ${YLIMS}       \
+                -xc "time" -xl "Time (s)"                               \
+                --size 6 3 -fs 12 -of $PLOTEXT -o $plotname
+        fi
+
+        files="$files $plotname"
+    done
+
+    # Combine
+    plotname=${plotdir}/${COLNAME}_tseries_runs.$PLOTEXT
+    montage -tile 0x3 -geometry +5+5 -border 5 $files ${plotname}
+    display ${plotname} &
+fi
+
+# debugging performance with faults time series
+if [ "$PLOTID" == "3" ]; then
+    plotdir=$PLOTDIR/$PLOTID
+    mkdir -p $plotdir
+    plots=
+    files=
+
+    # runs (need all samples parsed beforehand)
+    runs=$(bash show.sh 12-07-1[34] -b -lmp=40 | awk '{ print $1 }' | tail -n+2)
+
+    # statistic
+    COLNAME=faults
+    # COLNAME=evict_pages_done
+
+    # for each run
+    for exp in `echo "$runs"`; do
+        plots=
+        for f in `ls ${DATADIR}/${exp}/eden_rmem_parsed_s*`; do 
+            sid=$(basename $f | cut -d_ -f4)
+            # echo $f, $sid
+            plots="$plots -d $f -l $sid"
+        done
+
+        #plot time series
+        YLIMS="--ymin 0 --ymax 200"
+        YLABEL="${COLNAME} KOPS"
+        YMUL="--ymul 1e-3"
+        plotname=${plotdir}/${COLNAME}_tseries_${exp}.${PLOTEXT}
+        if [[ $FORCE_PLOTS ]] || [ ! -f "$plotname" ]; then
+            python3 ${ROOTDIR}/scripts/plot.py ${plots}                 \
+                -yc "${COLNAME}" -yl "${YLABEL}" ${YMUL} ${YLIMS}       \
+                -xc "time" -xl "Time (s)"                               \
+                --size 6 2 -fs 12 -of $PLOTEXT -o $plotname
+        fi
+
+        files="$files $plotname"
+    done
+
+    # Combine
+    plotname=${plotdir}/${COLNAME}_tseries_runs.$PLOTEXT
+    montage -tile 0x4 -geometry +5+5 -border 5 $files ${plotname}
+    display ${plotname} &
+fi
+
+if [ "$PLOTID" == "4" ]; then
+    plotdir=$PLOTDIR/$PLOTID
+    mkdir -p $plotdir
+    plots=
+    files=
+
+    plotname=${plotdir}/bar.${PLOTEXT}
+    python3 ${ROOTDIR}/scripts/plot.py -z bar -d bar        \
+        -yc "Throughput" -yl "Tnroughput (MOPS)" -ym 1e-6   \
+        -xc "System" -xl " " --xstr                         \
+        --size 5 5 -fs 12 -of $PLOTEXT -o $plotname
     display ${plotname} &
 fi
 

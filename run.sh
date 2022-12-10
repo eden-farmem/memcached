@@ -11,7 +11,6 @@ usage="\n
 -e, --eden \t run with Eden's remote memory\n
 -h, --hints \t enable Eden's remote memory hints\n
 -fs, --fastswap \t enable remote memory with fastswap\n
--fl,--cflags \t C flags passed to gcc when compiling the app/test\n
 -c, --cores \t number of CPU cores (defaults to 1)\n
 -zs, --zipfs \t S param of zipf workload\n
 -lm, --localmem \t local memory (in bytes)\n
@@ -96,14 +95,14 @@ MCACHED_SERVER_MAC="02:e2:54:ef:94:7b"
 SYNTHETIC_SERVER_IP="192.168.0.101"
 SYNTHETIC_SERVER_PORT="5131"
 SYNTHETIC_SERVER_MAC="02:74:bb:ac:4f:21"
-RUNTIME=20
+RUNTIME=30
 NCORES=1
 LMEM=$((1024*1024*1024))
 CONNS=100
-MPPS=2
 NKEYS=10000000
 ZIPFS=0.1
-START_MPPS=1
+START_MPPS=0
+MPPS=2
 SAMPLES=1
 
 # save settings
@@ -129,7 +128,6 @@ case $i in
     -d|--debug) # debug config
     # DEBUG="DEBUG=1"
     # DEBUG_FLAG="--debug"
-    # CFLAGS="$CFLAGS -DDEBUG"
     CONNS=5
     START_MPPS=1e-2
     MPPS=1e-2
@@ -139,10 +137,6 @@ case $i in
 
     -k=*|--nkeys=*)
     NKEYS="${i#*=}"
-    ;;
-
-    -fl=*|--cflags=*)
-    CFLAGS="$CFLAGS ${i#*=}"
     ;;
 
     -e|--eden)
@@ -213,9 +207,20 @@ case $i in
     LMEMPER=${i#*=}
     ;;
 
-    -ld=*|--load=*)
+    -lds=*|--loadstart=*)
+    START_MPPS=${i#*=}
+    ;;
+
+    -lde=*|--loadend=*)
     MPPS=${i#*=}
-    SAMPLES=$((MPPS-START_MPPS+1))
+    ;;
+
+    -sm=*|--samples=*)
+    SAMPLES=${i#*=}
+    ;;
+
+    -rd=*|--duration=*)
+    RUNTIME=${i#*=}
     ;;
 
     -nd|--nodirty)
@@ -237,9 +242,14 @@ case $i in
 
     -g|--gdb)
     GDB=1
-    CFLAGS="$CFLAGS -g -ggdb"
     GDBFLAG="GDB=1"
     GDBFLAG2="--enable-gdb"
+    ;;
+
+    -pfs|--pfsamples)
+    GDBFLAG2="--enable-gdb"
+    echo 0 | sudo tee /proc/sys/kernel/randomize_va_space #no ASLR
+    SHEN_CFLAGS="$SHEN_CFLAGS -DFAULT_SAMPLER"
     ;;
 
     -bo|--buildonly)
@@ -405,7 +415,14 @@ fi
 
 # rebuild shenango
 if [[ $FORCE ]] && [[ $SHENANGO ]]; then
-    pushd ${SHENANGO_DIR} 
+    pushd ${SHENANGO_DIR}
+    
+    branch=$(git rev-parse --abbrev-ref HEAD)
+    if [[ $branch != "master" ]]; then
+        echo "ERROR! use only the master branch until the deadline"
+        exit 1
+    fi
+
     if [[ $FORCE ]];        then    make clean;                         fi
     if [[ $EDEN ]];         then    OPTS="$OPTS REMOTE_MEMORY=1";       fi
     if [[ $HINTS ]];        then    OPTS="$OPTS REMOTE_MEMORY_HINTS=1"; fi
@@ -579,9 +596,11 @@ for retry in 1; do
     # # hashpower=28,no_hashexpand,no_lru_crawler,no_lru_maintainer,idle_timeout=0 2>&1 | ts %s  > memcached.out
     wrapper="$wrapper numactl -N ${NUMA_NODE} -m ${NUMA_NODE}"
     lruopts="lru_crawler,lru_maintainer";
+    opts=
     if [[ $NO_DIRTY ]]; then lruopts="no_lru_crawler,no_lru_maintainer"; fi
+    if [[ $COREDUMP ]]; then opts="-r"; fi
     args="${CFGFILE} -u `whoami` -t ${NCORES} -U ${MCACHED_SERVER_PORT} -p ${MCACHED_SERVER_PORT}"
-    args="${args} -c 32768 -m 48000 -b 32768 -P main_pid  -r -o hashpower=28,no_hashexpand,${lruopts},idle_timeout=0"
+    args="${args} -c 32768 -m 48000 -b 32768 -P main_pid ${opts} -o hashpower=28,no_hashexpand,${lruopts},idle_timeout=0"
     echo sudo ${wrapper} ${SCRIPT_DIR}/memcached ${args}
     sudo ${wrapper} ${SCRIPT_DIR}/memcached ${args} 2>&1 | tee app.out &
 

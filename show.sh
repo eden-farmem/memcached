@@ -216,13 +216,12 @@ for exp in $LS_CMD; do
         # echo $offered $acheived $sampleid
 
         # get timestamps of the best sample
-        sid=$((sampleid-1))
-        if [ ! -f "$exp/sample${sid}_start_time" ]; then
+        if [ ! -f "$exp/sample${sampleid}_start_time" ]; then
             echo "WARNING: timestamps for sample ${sampleid} not found"
         fi
-        rstart=$(cat $exp/sample${sid}_start_time 2>/dev/null)
+        rstart=$(cat $exp/sample${sampleid}_start_time 2>/dev/null)
         if [[ $rstart ]]; then rstart=$((rstart+RAMPUP_SECS));  fi
-        rend=$(cat $exp/sample${sid}_end_time 2>/dev/null)
+        rend=$(cat $exp/sample${sampleid}_end_time 2>/dev/null)
         if [[ $rend ]]; then  rend=$((rend-1)); fi
         rtime=$((rend-rstart))
 
@@ -230,12 +229,13 @@ for exp in $LS_CMD; do
         if [[ $FILTER_GOOD ]] && (! [[ $rtime ]] || [ $rtime -le 0 ]); then continue; fi
 
         if [[ $FORCE ]]; then
-            rm -f ${exp}/eden_rmem_parsed
-            rm -f ${exp}/runtime_parsed
-            rm -f ${exp}/cpu_sar_parsed
-            rm -f ${exp}/iokstats_parsed
-            rm -f ${exp}/vmstat_parsed
-            rm -f ${exp}/fstat_parsed
+            rm -f ${exp}/eden_rmem_parsed_s${sampleid}
+            rm -f ${exp}/runtime_parsed_s${sampleid}
+            rm -f ${exp}/cpu_sar_parsed_s${sampleid}
+            rm -f ${exp}/iokstats_parsed_s${sampleid}
+            rm -f ${exp}/vmstat_parsed_s${sampleid}
+            rm -f ${exp}/fstat_parsed_s${sampleid}
+            rm -f ${exp}/cpu_reclaim_sar_parsed_s${sampleid}
         fi
 
         # RMEM
@@ -252,7 +252,7 @@ for exp in $LS_CMD; do
         evpopped=
         hitr=
         if [[ "$rmem" == *"eden"* ]]; then
-            edenout=${exp}/eden_rmem_parsed
+            edenout=${exp}/eden_rmem_parsed_s${sampleid}
             edenin=${exp}/rmem-stats.out 
             if [ ! -f $edenout ] && [ -f $edenin ] && [[ $rstart ]] && [[ $rend ]]; then 
                 python3 ${ROOT_SCRIPTS_DIR}/parse_eden_rmem.py -i ${edenin}   \
@@ -286,13 +286,13 @@ for exp in $LS_CMD; do
                 hitr=$(percentage "$((annothits-faults))" "$annothits" | ftoi)
             fi
         elif [ "$rmem" == "fastswap" ]; then
-            fstat_out=${exp}/fstat_parsed
+            fstat_out=${exp}/fstat_parsed_s${sampleid}
             fstat_in=${exp}/fstat.out 
             if [ ! -f $fstat_out ] && [ -f $fstat_in ] && [[ $rstart ]] && [[ $rend ]]; then 
                 python3 ${ROOT_SCRIPTS_DIR}/parse_fstat.py -i ${fstat_in} \
                     -o ${fstat_out} -st ${rstart} -et ${rend}
             fi
-            vmstat_out=${exp}/vmstat_parsed
+            vmstat_out=${exp}/vmstat_parsed_s${sampleid}
             vmstat_in=${exp}/vmstat.out 
             if [ ! -f $vmstat_out ] && [ -f $vmstat_in ] && [[ $rstart ]] && [[ $rend ]]; then 
                 python3 ${ROOT_SCRIPTS_DIR}/parse_vmstat.py -i ${vmstat_in} \
@@ -304,7 +304,7 @@ for exp in $LS_CMD; do
             netwrite=$(csv_column_mean "$fstat_out" "succ_stores")
 
             # reclaim cpu
-            cpusarout=${exp}/cpu_reclaim_sar_parsed
+            cpusarout=${exp}/cpu_reclaim_sar_parsed_s${sampleid}
             cpusarin=${exp}/cpu_reclaim.sar
             if [ ! -f $cpusarout ] && [ -f $cpusarin ] && [[ $rstart ]] && [[ $rend ]]; then 
                 bash ${ROOT_SCRIPTS_DIR}/parse_sar.sh -sf=${cpusarin} -sc="%system" \
@@ -313,9 +313,18 @@ for exp in $LS_CMD; do
             reclaimcpu=$(csv_column_mean "$cpusarout" "%system")
         fi
 
+        # SHENANGO
+        shenangoout=${exp}/runtime_parsed_s${sampleid}
+        shenangoin=${exp}/runtime.out 
+        if ([[ $FORCE ]] || [ ! -f $shenangoout ]) && [ -f $shenangoin ]; then 
+            python ${ROOT_SCRIPTS_DIR}/parse_shenango_runtime.py -i ${shenangoin}   \
+                -o ${shenangoout}  -st=${rstart} -et=${rend} 
+        fi
+        sched_idle_per=$(csv_column_mean "$shenangoout" "sched_idle_per")
+
         # iok counters
         iokin=${exp}/iokernel.log
-        iokout=${exp}/iokstats_parsed
+        iokout=${exp}/iokstats_parsed_s${sampleid}
         if [ ! -f $iokout ] && [ -f $iokin ] && [[ $rstart ]] && [[ $rend ]]; then 
             python ${ROOT_SCRIPTS_DIR}/parse_shenango_iok.py -i ${iokin} -o ${iokout}   \
                 -st=${rstart} -et ${rend} 
@@ -340,7 +349,9 @@ for exp in $LS_CMD; do
     HEADER="$HEADER,NoDirty";       LINE="$LINE,${nodirty}";
     # HEADER="$HEADER,Warmup";        LINE="$LINE,${warmup}";
     # HEADER="$HEADER,PreloadTime";   LINE="$LINE,${ptime}";
-    HEADER="$HEADER,Runtime";       LINE="$LINE,${rtime}";
+    # HEADER="$HEADER,Runtime";       LINE="$LINE,${rtime}";
+    HEADER="$HEADER,Sample";        LINE="$LINE,${sampleid}";
+
 
     # CLIENT
     HEADER="$HEADER,Offered";       LINE="$LINE,${offered}";
@@ -353,6 +364,9 @@ for exp in $LS_CMD; do
         HEADER="$HEADER,FaultsW";       LINE="$LINE,${faultsw}";
         HEADER="$HEADER,FaultsWP";      LINE="$LINE,${faultswp}";
         HEADER="$HEADER,KFaults";       LINE="$LINE,${kfaults}";
+        HEADER="$HEADER,KFaultsR";      LINE="$LINE,${kfaultsr}";
+        HEADER="$HEADER,KFaultsW";      LINE="$LINE,${kfaultsw}";
+        HEADER="$HEADER,KFaultsWP";     LINE="$LINE,${kfaultswp}";
         HEADER="$HEADER,Evicts";        LINE="$LINE,${evicts}";
         HEADER="$HEADER,KEvicts";       LINE="$LINE,${kevicts}";
         HEADER="$HEADER,EvPopped";      LINE="$LINE,${evpopped}";
@@ -365,10 +379,13 @@ for exp in $LS_CMD; do
         HEADER="$HEADER,Mallocd";       LINE="$LINE,${mallocd}";
         HEADER="$HEADER,MemUsed";       LINE="$LINE,${memused}M";
 
+        # Shenango
+        HEADER="$HEADER,Idle%";      LINE="$LINE,${sched_idle_per}";
+
         # IOK
-        # HEADER="$HEADER,IOK_RX";        LINE="$LINE,${iokoffered}";
-        # HEADER="$HEADER,IOK_TX";        LINE="$LINE,${iokachieved}";
-        HEADER="$HEADER,IOK_CPU";       LINE="$LINE,${iokcpu}";
+        HEADER="$HEADER,IOKOff";        LINE="$LINE,${iokoffered}";
+        HEADER="$HEADER,IOKAch";        LINE="$LINE,${iokachieved}";
+        HEADER="$HEADER,IOKCPU";       LINE="$LINE,${iokcpu}";
     fi
 
     HEADER="$HEADER,Desc";          LINE="$LINE,${desc:0:30}";    
