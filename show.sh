@@ -354,8 +354,8 @@ for exp in $LS_CMD; do
 
 
     # CLIENT
-    HEADER="$HEADER,Offered";       LINE="$LINE,${offered}";
-    HEADER="$HEADER,Achieved";      LINE="$LINE,${acheived}";
+    HEADER="$HEADER,Offered";       LINE="$LINE,${iokoffered}";
+    HEADER="$HEADER,Achieved";      LINE="$LINE,${iokachieved}";
 
     if [ -z "$BASIC" ]; then
         # RMEM

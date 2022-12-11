@@ -84,14 +84,16 @@ if [ "$PLOTID" == "1" ]; then
     mkdir -p $plotdir
     plots=
     files=
-    NORMALIZE=
+    NORMALIZE=1
     CORES=5
-    NODIRTY=0
+    NODIRTY=1
 
     ## data
-    for runcfg in "eden" "eden+evb" "eden+evb+nbh" "eden+evb+nbh+sc"; do
+    # for runcfg in "eden" "eden+evb" "eden+evb+nbh" "eden+evb+nbh+sc"; do
+    for runcfg in "fswap"; do
 
         case $runcfg in
+        "fswap")            pattern="12-06"; rmem=fastswap; backend=rdma; cores=5; zipfs=1; desc="herobaseline";;
         "eden")             pattern="12-04"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=NONE; evb=1; desc="smallhero";;
         "eden+evb")         pattern="12-04"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=NONE; evb=8; desc="smallhero";;
         "eden+evb+nbh")     pattern="12-04"; rmem=eden; backend=rdma; cores=5; zipfs=1; evp=NONE; evb=8; desc="smallhero";;
@@ -134,7 +136,7 @@ if [ "$PLOTID" == "1" ]; then
 
     #plot xput
     XPUTCOL="Achieved"
-    YLIMS="--ymin 0 --ymax 2.5"
+    YLIMS="--ymin 0 --ymax 3.5"
     YLABEL="Xput MOPS"
     YMUL="--ymul 1e-6"
     if [[ $NORMALIZE ]]; then
