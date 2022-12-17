@@ -7,7 +7,7 @@ bash show.sh 12-06 -r=none -d=maxperf           # max perf
 ## Eden runs
 
 bash show.sh 12-10-0    -r=eden-bh -evb=1 -evp=NONE -d=hero
-bash show.sh 12-10-0    -r=eden-bh -evb=8 -evp=NONE -d=hero
+<!-- bash show.sh 12-10-0    -r=eden-bh -evb=8 -evp=NONE -d=hero (same as above, can use for error bars) -->
 <!-- bash show.sh 12-10-0    -r=eden-bh -evb=8 -evp=SC   -d=hero (same as above, can use for error bars) -->
 <!-- bash show.sh 12-10-[01] -r=eden    -evb=8 -evp=SC   -d=hero (same as above, can use for error bars) -->
 bash show.sh 12-10-0    -r=eden-bh -evb=8 -evp=SC   -d=hero TODO
@@ -25,3 +25,7 @@ Eden (BH+EVB+SC),1288131,
 Eden (NBH),863223
 Eden (NBH+EVB),1115064
 Eden (NBH+EVB+SC),1304768
+
+Notes:
+Batch size to 32 and 64 help; but not past that.
+Things seem to go bad at lower ratios - faults not increasing proportionally

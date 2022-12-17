@@ -355,6 +355,15 @@ if [[ $EDEN ]]; then
     RMEM="eden-nh"
     CFLAGS="$CFLAGS -DEDEN -DREMOTE_MEMORY"
 
+    # until deadline
+    pushd ${SHENANGO_DIR}
+    branch=$(git rev-parse --abbrev-ref HEAD)
+    if [[ $branch != "mcached" ]]; then
+        echo "ERROR! use only the synthetic branch until the deadline"
+        exit 1
+    fi
+    popd
+
     # hints
     if [[ $HINTS ]]; then
         RMEM="eden"
@@ -416,13 +425,6 @@ fi
 # rebuild shenango
 if [[ $FORCE ]] && [[ $SHENANGO ]]; then
     pushd ${SHENANGO_DIR}
-    
-    branch=$(git rev-parse --abbrev-ref HEAD)
-    if [[ $branch != "master" ]]; then
-        echo "ERROR! use only the master branch until the deadline"
-        exit 1
-    fi
-
     if [[ $FORCE ]];        then    make clean;                         fi
     if [[ $EDEN ]];         then    OPTS="$OPTS REMOTE_MEMORY=1";       fi
     if [[ $HINTS ]];        then    OPTS="$OPTS REMOTE_MEMORY_HINTS=1"; fi
@@ -572,13 +574,13 @@ for retry in 1; do
     fi 
 
     # run in gdb server if requested
-    if [[ $GDB ]]; then
-        if [ -z "$wrapper" ]; then
-            wrapper="gdbserver :1234 "
-        else
-            wrapper="gdbserver --wrapper $wrapper -- :1234 "
-        fi
-    fi
+    # if [[ $GDB ]]; then
+    #     if [ -z "$wrapper" ]; then
+    #         wrapper="gdbserver :1234 "
+    #     else
+    #         wrapper="gdbserver --wrapper $wrapper -- :1234 "
+    #     fi
+    # fi
 
     # start memory stats for fastswap
     if [[ $FASTSWAP ]]; then
@@ -614,6 +616,7 @@ for retry in 1; do
     pid=`cat main_pid`
     if [[ $pid ]]; then
 
+        echo "found pid $pid"
         if [[ $FASTSWAP ]]; then
             #enforce localmem
             CGROUP_PROCS=/cgroup2/benchmarks/$APPNAME/cgroup.procs

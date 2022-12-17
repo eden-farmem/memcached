@@ -261,6 +261,7 @@ for exp in $LS_CMD; do
             faultsr=$(csv_column_mean "$edenout" "faults_r")
             faultsw=$(csv_column_mean "$edenout" "faults_w")
             faultswp=$(csv_column_mean "$edenout" "faults_wp")
+            faultszp=$(csv_column_mean "$edenout" "faults_zp")
             faults=$(csv_column_mean "$edenout" "faults")
             kfaultsr=$(csv_column_mean "$edenout" "faults_r_h")
             kfaultsw=$(csv_column_mean "$edenout" "faults_w_h")
@@ -273,18 +274,22 @@ for exp in $LS_CMD; do
             netreads=$(csv_column_mean "$edenout" "net_reads")
             netwrite=$(csv_column_mean "$edenout" "net_writes")
             mallocd=$(csv_column_max "$edenout" "rmalloc_size_mb")
-            steals=$(csv_column_mean "$edenout" "steals")
-            hsteals=$(csv_column_mean "$edenout" "steals_h")
+            rsteals=$(csv_column_mean "$edenout" "steals_ready")
+            wsteals=$(csv_column_mean "$edenout" "steals_wait")
+            hrsteals=$(csv_column_mean "$edenout" "steals_ready_h")
+            wrsteals=$(csv_column_mean "$edenout" "steals_ready_w")
             waitretries=$(csv_column_mean "$edenout" "wait_retries")
             hwaitretries=$(csv_column_mean "$edenout" "wait_retries_h")
-            # madvd=$(csv_column_max "$edenout" "rmadv_size_mb")
+            madvd=$(csv_column_max "$edenout" "rmadv_size_mb")
             memused=$(csv_column_max "$edenout" "memory_used_mb")
             annothits=$(csv_column_mean "$edenout" "annot_hits")
             reclaimcpu=$(csv_column_mean "$edenout" "cpu_per_h")
-            hitr=
-            if [[ $annothits ]] && [[ $faults ]]; then 
-                hitr=$(percentage "$((annothits-faults))" "$annothits" | ftoi)
-            fi
+            bkendwait=$(csv_column_mean "$edenout" "backend_wait_cycles")
+            # hitr=
+            # if [[ $annothits ]] && [[ $faults ]]; then 
+            #     # right now there are two annot hits per request + one more for 
+            #     hitr=$(percentage "$((annothits-3*faults))" "$((annothits-faults))" | ftoi)
+            # fi
         elif [ "$rmem" == "fastswap" ]; then
             fstat_out=${exp}/fstat_parsed_s${sampleid}
             fstat_in=${exp}/fstat.out 
@@ -320,7 +325,14 @@ for exp in $LS_CMD; do
             python ${ROOT_SCRIPTS_DIR}/parse_shenango_runtime.py -i ${shenangoin}   \
                 -o ${shenangoout}  -st=${rstart} -et=${rend} 
         fi
-        sched_idle_per=$(csv_column_mean "$shenangoout" "sched_idle_per")
+        sched_idle_cycles=$(csv_column_mean "$shenangoout" "sched_cycles_idle")
+        sched_time_cycles=$(csv_column_mean "$shenangoout" "sched_cycles")
+        app_time_cycles=$(csv_column_mean "$shenangoout" "program_cycles")
+        rescheds=$(csv_column_mean "$shenangoout" "rescheds")
+        parks=$(csv_column_mean "$shenangoout" "parks")
+        softirqs=$(csv_column_mean "$shenangoout" "softirqs_local")
+        thsteals=$(csv_column_mean "$shenangoout" "threads_stolen")
+        irqsteals=$(csv_column_mean "$shenangoout" "softirqs_stolen")
 
         # iok counters
         iokin=${exp}/iokernel.log
@@ -363,6 +375,7 @@ for exp in $LS_CMD; do
         HEADER="$HEADER,FaultsR";       LINE="$LINE,${faultsr}";
         HEADER="$HEADER,FaultsW";       LINE="$LINE,${faultsw}";
         HEADER="$HEADER,FaultsWP";      LINE="$LINE,${faultswp}";
+        HEADER="$HEADER,FaultsZP";      LINE="$LINE,${faultszp}";
         HEADER="$HEADER,KFaults";       LINE="$LINE,${kfaults}";
         HEADER="$HEADER,KFaultsR";      LINE="$LINE,${kfaultsr}";
         HEADER="$HEADER,KFaultsW";      LINE="$LINE,${kfaultsw}";
@@ -370,7 +383,8 @@ for exp in $LS_CMD; do
         HEADER="$HEADER,Evicts";        LINE="$LINE,${evicts}";
         HEADER="$HEADER,KEvicts";       LINE="$LINE,${kevicts}";
         HEADER="$HEADER,EvPopped";      LINE="$LINE,${evpopped}";
-        HEADER="$HEADER,HitR";          LINE="$LINE,${hitr}";
+        HEADER="$HEADER,AnnotHits";     LINE="$LINE,${annothits}";
+        HEADER="$HEADER,HitR";          LINE="$LINE,$(percentage "$((iokachieved-faults))" "$iokachieved")";
         HEADER="$HEADER,Mallocd";       LINE="$LINE,${mallocd}";
 
         HEADER="$HEADER,NetReads";      LINE="$LINE,${netreads}";
@@ -379,8 +393,23 @@ for exp in $LS_CMD; do
         HEADER="$HEADER,Mallocd";       LINE="$LINE,${mallocd}";
         HEADER="$HEADER,MemUsed";       LINE="$LINE,${memused}M";
 
+        # steals
+        HEADER="$HEADER,RSteals";       LINE="$LINE,${rsteals}";
+        HEADER="$HEADER,WSteals";       LINE="$LINE,${wsteals}";
+        HEADER="$HEADER,HRSteals";      LINE="$LINE,${hrsteals}";
+        HEADER="$HEADER,WRSteals";      LINE="$LINE,${wrsteals}";
+        HEADER="$HEADER,WaitRetries";   LINE="$LINE,${waitretries}";
+
         # Shenango
-        HEADER="$HEADER,Idle%";      LINE="$LINE,${sched_idle_per}";
+        HEADER="$HEADER,Idle(ms)";      LINE="$LINE,$((sched_idle_cycles/(cores*2194*1000)))";
+        HEADER="$HEADER,BkIdle(ms)";    LINE="$LINE,$((bkendwait/(cores*2194*1000)))";
+        HEADER="$HEADER,Rtime(ms)";     LINE="$LINE,$((sched_time_cycles/(cores*2194*1000)))";
+        HEADER="$HEADER,Ptime(ms)";     LINE="$LINE,$((app_time_cycles/(cores*2194*1000)))";
+        HEADER="$HEADER,Rescheds";      LINE="$LINE,${rescheds}";
+        HEADER="$HEADER,RTentries";     LINE="$LINE,${parks}";
+        HEADER="$HEADER,Softirqs";      LINE="$LINE,${softirqs}";
+        HEADER="$HEADER,Steals";        LINE="$LINE,${thsteals}";
+        HEADER="$HEADER,IRQSteals";     LINE="$LINE,${irqsteals}";
 
         # IOK
         HEADER="$HEADER,IOKOff";        LINE="$LINE,${iokoffered}";

@@ -52,10 +52,10 @@ done
 ## Configs
 ## Very small
 # NKEYS=1000000
-# CORES=1
-# START_MPPS=0
-# END_MPPS=1      # for 40%
-# SAMPLES=1
+# CORES=5
+# START_MPPS=1
+# END_MPPS=4      # for 40%
+# SAMPLES=3
 # EDEN_MAX=717
 # FASTSWAP_MAX=950
 # WARMUP=
@@ -64,13 +64,13 @@ done
 ## Small
 NKEYS=10000000
 CORES=5
-START_MPPS=0.5    # for 40%
-END_MPPS=2 
-SAMPLES=10
+# START_MPPS=0.5    # for 40%
+# END_MPPS=2
+# SAMPLES=4
 # START_MPPS=2.5
 # END_MPPS=4      # for 100%
-# SAMPLES=6
-EDEN_MAX=7174
+SAMPLES=1
+EDEN_MAX=7300
 FASTSWAP_MAX=9500
 WARMUP=1
 RUNTIME=30
@@ -121,9 +121,11 @@ configure_for_backend() {
 configure_max_load() {
     # for Small dataset
     local memp=$1
-    if [ $memp -lt 50 ]; then       START_MPPS=0.5;     END_MPPS=2;
-    elif [ $memp -lt 80 ]; then     START_MPPS=1;       END_MPPS=2.5;
-    else                            START_MPPS=1.5;     END_MPPS=3.5;
+    if [ $memp -le 20 ]; then       START_MPPS=0.5;     END_MPPS=2;
+    elif [ $memp -le 40 ]; then     START_MPPS=1;       END_MPPS=2.5;
+    elif [ $memp -le 60 ]; then     START_MPPS=1;       END_MPPS=3.5;
+    elif [ $memp -le 80 ]; then     START_MPPS=1;       END_MPPS=4;
+    else                            START_MPPS=2;       END_MPPS=5;
     fi
 }
 
@@ -177,7 +179,7 @@ run_vary_lmem() {
     if [[ $nodirty ]];  then  OPTS="$OPTS --nodirty"; fi
     if [[ $WARMUP ]];   then  OPTS="$OPTS --warmup"; fi
     # OPTS="$OPTS --sampleepochs"
-    # OPTS="$OPTS --safemode"
+    # OPTS="$OPTS --gdb"
     # OPTS="$OPTS --pfsamples"
     rebuild_with_current_config
     echo $OPTS
@@ -190,7 +192,7 @@ run_vary_lmem() {
     # run
     configure_max_local_mem "$kind" "$cores"
     # for memp in `seq 20 10 100`; do
-    for memp in 40; do
+    for memp in 10; do
         check_for_stop
 
         # determine load
@@ -222,24 +224,45 @@ for zs in 1; do
             desc="hero"
             # run_vary_lmem "uthr"    "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
             # run_vary_lmem "eden-nh" "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
-            # run_vary_lmem "eden-bh" "local"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
+            # run_vary_lmem "eden-bh" "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
             # run_vary_lmem "eden"    "local" "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
             # run_vary_lmem "eden"    "local" "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
-            # run_vary_lmem "eden"    "local" "$c" "$zs" "$ebs" "SC"   "$evg" "$nod"
-            # run_vary_lmem "eden"    "local" "$c" "$zs" "$ebs" "LRU"  "$evg" "$nod"
+            # run_vary_lmem "eden-bh" "local" "$c" "$zs" "8"    "SC"   "$evg" "$nod"
+            # run_vary_lmem "eden"    "local" "$c" "$zs" "8"    "SC"   "$evg" "$nod"
+
             # run_vary_lmem "eden-nh" "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
             # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
             # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
             # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "$ebs" "NONE" "$evg" "$nod"
             # run_vary_lmem "fswap"   "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
             # run_vary_lmem "fswap"   "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
-            # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
-            # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
-            # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "32"    "SC"   "$evg" "$nod"
-            # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "$ebs" "$evp" "$evg" "$nod"
+            # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "$ebs" "$evp"  "$evg" "$nod"
+            # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "32"    "$evp" "$evg" "$nod"
+            # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "32"   "SC"   "$evg" "$nod"
+            # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "32"   "SC"   "$evg" "$nod"
+            # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "32"   "SC"    "$evg" "$nod"
             # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "$evp" "$evg" "$nod"
             # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "8"    "SC"   "$evg" "$nod"
             # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "8"    "LRU"  "$evg" "$nod"
+
+            # best runs
+            # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "32"   "SC"   "$evg" "$nod"
+
+            # bug debug
+            # run_vary_lmem "eden-bh" "local"  "$c" "$zs" "32"    "SC"   "$evg" "$nod"
+            # run_vary_lmem "eden"    "local"  "$c" "$zs" "32"    "SC"   "$evg" "$nod"
+
+
+            # for overnight
+            # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "32"    "$evp" "$evg" "$nod"
+            run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "32"    "SC"   "$evg" "$nod"
+            run_vary_lmem "eden"    "rdma"  "$c" "$zs" "32"    "SC"   "$evg" "$nod"
+            # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "32"    "SC"   "$evg" "$nod"
+            # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "32"    "SC"   "$evg" "$nod"
+            # # run_vary_lmem "eden" "rdma"  "$c" "$zs" "32"    "SC"   "$evg" "$nod"
+            # run_vary_lmem "eden" "rdma"  "$c" "$zs" "32"    "SC"   "$evg" "$nod"
+            # run_vary_lmem "eden" "rdma"  "$c" "$zs" "32"    "SC"   "$evg" "$nod"
+            # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "32"    "SC"   "$evg" "$nod"
         done
     done
 done
