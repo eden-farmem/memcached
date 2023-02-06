@@ -358,7 +358,7 @@ for exp in $LS_CMD; do
     HEADER="$HEADER,EvB";           LINE="$LINE,${evictbs}";
     HEADER="$HEADER,EvP";           LINE="$LINE,${evictpol}";
     # HEADER="$HEADER,EvG";           LINE="$LINE,${evictgens}";
-    HEADER="$HEADER,NoDirty";       LINE="$LINE,${nodirty}";
+    # HEADER="$HEADER,NoDirty";       LINE="$LINE,${nodirty}";
     # HEADER="$HEADER,Warmup";        LINE="$LINE,${warmup}";
     # HEADER="$HEADER,PreloadTime";   LINE="$LINE,${ptime}";
     # HEADER="$HEADER,Runtime";       LINE="$LINE,${rtime}";
@@ -372,44 +372,43 @@ for exp in $LS_CMD; do
     if [ -z "$BASIC" ]; then
         # RMEM
         HEADER="$HEADER,Faults";        LINE="$LINE,${faults}";
-        HEADER="$HEADER,FaultsR";       LINE="$LINE,${faultsr}";
-        HEADER="$HEADER,FaultsW";       LINE="$LINE,${faultsw}";
-        HEADER="$HEADER,FaultsWP";      LINE="$LINE,${faultswp}";
-        HEADER="$HEADER,FaultsZP";      LINE="$LINE,${faultszp}";
+        # HEADER="$HEADER,FaultsR";       LINE="$LINE,${faultsr}";
+        # HEADER="$HEADER,FaultsW";       LINE="$LINE,${faultsw}";
+        # HEADER="$HEADER,FaultsWP";      LINE="$LINE,${faultswp}";
+        # HEADER="$HEADER,FaultsZP";      LINE="$LINE,${faultszp}";
         HEADER="$HEADER,KFaults";       LINE="$LINE,${kfaults}";
-        HEADER="$HEADER,KFaultsR";      LINE="$LINE,${kfaultsr}";
-        HEADER="$HEADER,KFaultsW";      LINE="$LINE,${kfaultsw}";
-        HEADER="$HEADER,KFaultsWP";     LINE="$LINE,${kfaultswp}";
+        # HEADER="$HEADER,KFaultsR";      LINE="$LINE,${kfaultsr}";
+        # HEADER="$HEADER,KFaultsW";      LINE="$LINE,${kfaultsw}";
+        # HEADER="$HEADER,KFaultsWP";     LINE="$LINE,${kfaultswp}";
         HEADER="$HEADER,Evicts";        LINE="$LINE,${evicts}";
         HEADER="$HEADER,KEvicts";       LINE="$LINE,${kevicts}";
         HEADER="$HEADER,EvPopped";      LINE="$LINE,${evpopped}";
-        HEADER="$HEADER,AnnotHits";     LINE="$LINE,${annothits}";
+        # HEADER="$HEADER,AnnotHits";     LINE="$LINE,${annothits}";
         HEADER="$HEADER,HitR";          LINE="$LINE,$(percentage "$((iokachieved-faults))" "$iokachieved")";
-        HEADER="$HEADER,Mallocd";       LINE="$LINE,${mallocd}";
 
-        HEADER="$HEADER,NetReads";      LINE="$LINE,${netreads}";
-        HEADER="$HEADER,NetWrites";     LINE="$LINE,${netwrite}";
-        HEADER="$HEADER,rCPU%";         LINE="$LINE,${reclaimcpu}";
-        HEADER="$HEADER,Mallocd";       LINE="$LINE,${mallocd}";
+        # HEADER="$HEADER,NetReads";      LINE="$LINE,${netreads}";
+        # HEADER="$HEADER,NetWrites";     LINE="$LINE,${netwrite}";
+        # HEADER="$HEADER,rCPU%";         LINE="$LINE,${reclaimcpu}";
+        # HEADER="$HEADER,Mallocd";       LINE="$LINE,${mallocd}";
         HEADER="$HEADER,MemUsed";       LINE="$LINE,${memused}M";
 
         # steals
-        HEADER="$HEADER,RSteals";       LINE="$LINE,${rsteals}";
-        HEADER="$HEADER,WSteals";       LINE="$LINE,${wsteals}";
-        HEADER="$HEADER,HRSteals";      LINE="$LINE,${hrsteals}";
-        HEADER="$HEADER,WRSteals";      LINE="$LINE,${wrsteals}";
-        HEADER="$HEADER,WaitRetries";   LINE="$LINE,${waitretries}";
+        # HEADER="$HEADER,RSteals";       LINE="$LINE,${rsteals}";
+        # HEADER="$HEADER,WSteals";       LINE="$LINE,${wsteals}";
+        # HEADER="$HEADER,HRSteals";      LINE="$LINE,${hrsteals}";
+        # HEADER="$HEADER,WRSteals";      LINE="$LINE,${wrsteals}";
+        # HEADER="$HEADER,WaitRetries";   LINE="$LINE,${waitretries}";
 
         # Shenango
         HEADER="$HEADER,Idle(ms)";      LINE="$LINE,$((sched_idle_cycles/(cores*2194*1000)))";
-        HEADER="$HEADER,BkIdle(ms)";    LINE="$LINE,$((bkendwait/(cores*2194*1000)))";
-        HEADER="$HEADER,Rtime(ms)";     LINE="$LINE,$((sched_time_cycles/(cores*2194*1000)))";
-        HEADER="$HEADER,Ptime(ms)";     LINE="$LINE,$((app_time_cycles/(cores*2194*1000)))";
-        HEADER="$HEADER,Rescheds";      LINE="$LINE,${rescheds}";
-        HEADER="$HEADER,RTentries";     LINE="$LINE,${parks}";
-        HEADER="$HEADER,Softirqs";      LINE="$LINE,${softirqs}";
-        HEADER="$HEADER,Steals";        LINE="$LINE,${thsteals}";
-        HEADER="$HEADER,IRQSteals";     LINE="$LINE,${irqsteals}";
+        # HEADER="$HEADER,BkIdle(ms)";    LINE="$LINE,$((bkendwait/(cores*2194*1000)))";
+        # HEADER="$HEADER,Rtime(ms)";     LINE="$LINE,$((sched_time_cycles/(cores*2194*1000)))";
+        # HEADER="$HEADER,Ptime(ms)";     LINE="$LINE,$((app_time_cycles/(cores*2194*1000)))";
+        # HEADER="$HEADER,Rescheds";      LINE="$LINE,${rescheds}";
+        # HEADER="$HEADER,RTentries";     LINE="$LINE,${parks}";
+        # HEADER="$HEADER,Softirqs";      LINE="$LINE,${softirqs}";
+        # HEADER="$HEADER,Steals";        LINE="$LINE,${thsteals}";
+        # HEADER="$HEADER,IRQSteals";     LINE="$LINE,${irqsteals}";
 
         # IOK
         HEADER="$HEADER,IOKOff";        LINE="$LINE,${iokoffered}";
