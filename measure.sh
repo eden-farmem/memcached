@@ -74,6 +74,7 @@ EDEN_MAX=7300
 FASTSWAP_MAX=9258
 WARMUP=1
 RUNTIME=30
+# SAFEMODE=1      ##UNDO
 
 ## Large
 # NKEYS=30000000
@@ -178,6 +179,7 @@ run_vary_lmem() {
     if [[ $evgens ]];   then  OPTS="$OPTS --evictgens=${evgens}"; fi
     if [[ $nodirty ]];  then  OPTS="$OPTS --nodirty"; fi
     if [[ $WARMUP ]];   then  OPTS="$OPTS --warmup"; fi
+    if [[ $SAFEMODE ]]; then  OPTS="$OPTS --safemode"; fi
     # OPTS="$OPTS --sampleepochs"
     # OPTS="$OPTS --gdb"
     # OPTS="$OPTS --pfsamples"
@@ -247,6 +249,7 @@ for zs in 1; do
 
             # best runs
             # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "32"   "SC"   "$evg" "$nod"
+            run_vary_lmem "eden"    "rdma"  "$c" "$zs" "32"   "SC"   "$evg" "$nod"
 
             # bug debug
             # run_vary_lmem "eden-bh" "local"  "$c" "$zs" "32"    "SC"   "$evg" "$nod"

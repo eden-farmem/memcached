@@ -362,7 +362,7 @@ if [[ $EDEN ]]; then
     pushd ${SHENANGO_DIR}
     branch=$(git rev-parse --abbrev-ref HEAD)
     if [[ $branch != "mcached" ]]; then
-        echo "ERROR! use only the synthetic branch until the deadline"
+        echo "ERROR! use only the mcached branch until the deadline"
         exit 1
     fi
     popd

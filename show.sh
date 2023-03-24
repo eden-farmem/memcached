@@ -155,6 +155,7 @@ for exp in $LS_CMD; do
     # echo $exp
     name=$(basename $exp)
     cores=$(cat $exp/settings | grep "cores:" | awk -F: '{ print $2 }')
+    nkeys=$(cat $exp/settings | grep "keys:" | awk -F: '{ print $2 }')
     localmem=$(cat $exp/settings | grep "localmem:" | awk -F: '{ printf $2/1048576 }')
     lmemper=$(cat $exp/settings | grep "lmemper:" | awk -F: '{ printf $2 }')
     rmem=$(cat $exp/settings | grep "rmem:" | awk -F: '{ print $2 }')
@@ -310,6 +311,7 @@ for exp in $LS_CMD; do
             memused=$(csv_column_max "$memstat_out" "anon_mb")
             netreads=$(csv_column_mean "$fstat_out" "loads")
             netwrite=$(csv_column_mean "$fstat_out" "succ_stores")
+            mallocd=
 
             # reclaim cpu
             cpusarout=${exp}/cpu_reclaim_sar_parsed_s${sampleid}
