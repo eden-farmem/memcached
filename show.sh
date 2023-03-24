@@ -233,7 +233,7 @@ for exp in $LS_CMD; do
             rm -f ${exp}/runtime_parsed_s${sampleid}
             rm -f ${exp}/cpu_sar_parsed_s${sampleid}
             rm -f ${exp}/iokstats_parsed_s${sampleid}
-            rm -f ${exp}/vmstat_parsed_s${sampleid}
+            rm -f ${exp}/memstat_parsed_s${sampleid}
             rm -f ${exp}/fstat_parsed_s${sampleid}
             rm -f ${exp}/cpu_reclaim_sar_parsed_s${sampleid}
         fi
@@ -297,14 +297,17 @@ for exp in $LS_CMD; do
                 python3 ${ROOT_SCRIPTS_DIR}/parse_fstat.py -i ${fstat_in} \
                     -o ${fstat_out} -st ${rstart} -et ${rend}
             fi
-            vmstat_out=${exp}/vmstat_parsed_s${sampleid}
-            vmstat_in=${exp}/vmstat.out 
-            if [ ! -f $vmstat_out ] && [ -f $vmstat_in ] && [[ $rstart ]] && [[ $rend ]]; then 
-                python3 ${ROOT_SCRIPTS_DIR}/parse_vmstat.py -i ${vmstat_in} \
-                    -o ${vmstat_out} -st ${rstart} -et ${rend}
+            memstat_out=${exp}/memstat_parsed_s${sampleid}
+            memstat_in=${exp}/memory-stat.out 
+            if [ ! -f $memstat_out ] && [ -f $memstat_in ] && [[ $rstart ]] && [[ $rend ]]; then 
+                python3 ${ROOT_SCRIPTS_DIR}/parse_memory_stat.py -i ${memstat_in} \
+                    -o ${memstat_out} -st ${rstart} -et ${rend}
             fi
-            faults=$(csv_column_mean "$vmstat_out" "pgmajfault")
-            memused=$(csv_column_max "$vmstat_out" "nr_anon_pages_mb")
+            faults=$(csv_column_mean "$memstat_out" "pgfault")
+            majfaults=$(csv_column_mean "$memstat_out" "pgmajfault")
+            minfaults=$((faults-majfaults))
+            faults=$majfaults
+            memused=$(csv_column_max "$memstat_out" "anon_mb")
             netreads=$(csv_column_mean "$fstat_out" "loads")
             netwrite=$(csv_column_mean "$fstat_out" "succ_stores")
 
@@ -322,7 +325,7 @@ for exp in $LS_CMD; do
         shenangoout=${exp}/runtime_parsed_s${sampleid}
         shenangoin=${exp}/runtime.out 
         if ([[ $FORCE ]] || [ ! -f $shenangoout ]) && [ -f $shenangoin ]; then 
-            python ${ROOT_SCRIPTS_DIR}/parse_shenango_runtime.py -i ${shenangoin}   \
+            python3 ${ROOT_SCRIPTS_DIR}/parse_shenango_runtime.py -i ${shenangoin}   \
                 -o ${shenangoout}  -st=${rstart} -et=${rend} 
         fi
         sched_idle_cycles=$(csv_column_mean "$shenangoout" "sched_cycles_idle")
@@ -338,7 +341,7 @@ for exp in $LS_CMD; do
         iokin=${exp}/iokernel.log
         iokout=${exp}/iokstats_parsed_s${sampleid}
         if [ ! -f $iokout ] && [ -f $iokin ] && [[ $rstart ]] && [[ $rend ]]; then 
-            python ${ROOT_SCRIPTS_DIR}/parse_shenango_iok.py -i ${iokin} -o ${iokout}   \
+            python3 ${ROOT_SCRIPTS_DIR}/parse_shenango_iok.py -i ${iokin} -o ${iokout}   \
                 -st=${rstart} -et ${rend} 
         fi
         iokoffered=$(csv_column_mean "$iokout" "RX_PULLED")
@@ -372,6 +375,7 @@ for exp in $LS_CMD; do
     if [ -z "$BASIC" ]; then
         # RMEM
         HEADER="$HEADER,Faults";        LINE="$LINE,${faults}";
+        HEADER="$HEADER,FaultsMin";     LINE="$LINE,${minfaults}";
         HEADER="$HEADER,FaultsR";       LINE="$LINE,${faultsr}";
         HEADER="$HEADER,FaultsW";       LINE="$LINE,${faultsw}";
         HEADER="$HEADER,FaultsWP";      LINE="$LINE,${faultswp}";
