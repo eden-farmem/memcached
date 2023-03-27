@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <runtime/pgfault.h>
+#include <rmem/api.h>
 
 static condvar_t maintenance_cond;
 static mutex_t maintenance_lock;
@@ -60,7 +61,7 @@ void assoc_init(const int hashtable_init) {
     if (hashtable_init) {
         hashpower = hashtable_init;
     }
-    primary_hashtable = calloc(hashsize(hashpower), sizeof(void *));
+    primary_hashtable = rmalloc(hashsize(hashpower) * sizeof(void *));
     if (! primary_hashtable) {
         fprintf(stderr, "Failed to init hashtable.\n");
         exit(EXIT_FAILURE);
@@ -74,13 +75,16 @@ void assoc_init(const int hashtable_init) {
 item *assoc_find(const char *key, const size_t nkey, const uint32_t hv) {
     item *it;
     unsigned int oldbucket;
+    uint32_t idx;
 
     if (expanding &&
         (oldbucket = (hv & hashmask(hashpower - 1))) >= expand_bucket)
     {
         it = old_hashtable[oldbucket];
     } else {
-        it = primary_hashtable[hv & hashmask(hashpower)];
+        idx = hv & hashmask(hashpower);
+        possible_read_fault_on(&primary_hashtable[idx]);
+        it = primary_hashtable[idx];
     }
 
     item *ret = NULL;
