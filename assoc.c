@@ -24,6 +24,12 @@
 #include <runtime/pgfault.h>
 #include <rmem/api.h>
 
+// #define RECORD_PAGE_ACCESS
+#ifdef RECORD_PAGE_ACCESS
+#include <ctype.h>
+#include <string.h>
+#endif
+
 static condvar_t maintenance_cond;
 static mutex_t maintenance_lock;
 
@@ -72,10 +78,103 @@ void assoc_init(const int hashtable_init) {
     STATS_UNLOCK();
 }
 
+#ifdef RECORD_PAGE_ACCESS
+/*******************************************************/
+/*********** QUICK DATA RECORDING LOGIC ****************/
+const int max_record_secs = 175;            /* how long to record */
+const int max_records = 5000000 * 30;       /* max records that I can expect */
+const int stop_at_record = max_records-1;   /* stop recording at this point */
+const int record_len = 100;             /* max len in chars of each record */
+static pthread_mutex_t record_lock = PTHREAD_MUTEX_INITIALIZER;
+static long record_start_time = -1;
+static int record_current_sec = 0;
+static char* record_buf = NULL;
+static size_t nrecords = 0;
+static size_t nrecords_seen = 0;
+static char* record_buf_ptr = NULL;
+static bool dumped_records = false;
+
+void record(char* record_str);
+void record(char* record_str)
+{
+    long now;
+    bool stop = false;
+    bool dump = false;
+    int len;
+
+    now = time(NULL);
+    pthread_mutex_lock(&record_lock);
+
+    /* init data structures if first time*/
+    if (record_buf == NULL) {
+        record_buf = calloc((size_t) max_records * record_len, sizeof(char));
+        if (record_buf == NULL) {
+            perror("calloc");
+            exit(1);
+        }
+        record_buf_ptr = record_buf;
+    }
+    if (record_start_time == -1)
+        record_start_time = now;
+
+    /* printing some info regardless of recording or not */
+    nrecords_seen++;
+    if (now - record_start_time > record_current_sec) {
+        record_current_sec = (now - record_start_time);
+        log_err("seen %ld records in %d secs, recorded: %ld", 
+            nrecords_seen, record_current_sec, nrecords);
+    }
+    
+    /* if we're over the limit, stop */
+    if (nrecords == stop_at_record || now - record_start_time > max_record_secs)
+        stop = true;
+
+    if (stop) {
+        if (!dumped_records) {
+            dump = true;
+            dumped_records = true;
+        }
+    }
+    else {
+        /* add the record */
+        len = snprintf(record_buf_ptr, record_len, "%ld:%s\n",
+            now - record_start_time, record_str);
+        record_buf_ptr += len;
+        nrecords++;
+    }
+
+    /* unlock */
+    pthread_mutex_unlock(&record_lock);
+
+    /* dump records to file */
+    if (dump) {
+        FILE *fp = fopen("output.txt", "w");
+        if (fp == NULL) {
+            log_err("error opening record file");
+            exit(1);
+        }
+        fwrite(record_buf, sizeof(char), (record_buf_ptr - record_buf), fp);
+        fclose(fp);
+        log_err("dumped %ld records", nrecords);
+    }
+}
+
+/*******************************************************/
+#endif
+
 item *assoc_find(const char *key, const size_t nkey, const uint32_t hv) {
     item *it;
     unsigned int oldbucket;
     uint32_t idx;
+
+#ifdef RECORD_PAGE_ACCESS
+    /* recording code */
+    char buf[record_len+1];
+    char keyprefix[33];
+    int i;
+    for(i = 0; isdigit(key[i]); i++) keyprefix[i] = key[i];
+    keyprefix[i] = '\0';
+#endif
 
     if (expanding &&
         (oldbucket = (hv & hashmask(hashpower - 1))) >= expand_bucket)
@@ -83,6 +182,11 @@ item *assoc_find(const char *key, const size_t nkey, const uint32_t hv) {
         it = old_hashtable[oldbucket];
     } else {
         idx = hv & hashmask(hashpower);
+#ifdef RECORD_PAGE_ACCESS
+        // snprintf(buf, record_len, "%s,%ld", keyprefix, 
+        //     (unsigned long) (&primary_hashtable[idx]) & ~(4096 - 1));
+        // record(buf);
+#endif
         possible_read_fault_on(&primary_hashtable[idx]);
         it = primary_hashtable[idx];
     }
@@ -90,6 +194,11 @@ item *assoc_find(const char *key, const size_t nkey, const uint32_t hv) {
     item *ret = NULL;
     int depth = 0;
     while (it) {
+#ifdef RECORD_PAGE_ACCESS
+        snprintf(buf, record_len, "%s,%ld", keyprefix, 
+            (unsigned long) (&it->nkey) & ~(4096 - 1));
+        record(buf);
+#endif
         possible_read_fault_on(&it->nkey);
         if (nkey == it->nkey) {
             possible_read_fault_on(ITEM_key(it));
