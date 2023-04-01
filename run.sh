@@ -90,6 +90,10 @@ SCHEDULER=pthreads
 RMEM=none
 RDAHEAD=no
 EVICT_GENS=1
+PRIO=
+EVICT_NPRIO=1
+PRIO_TYPE=
+LRU_BUMP_THR=0.5
 
 # settings
 MCACHED_SERVER_IP="192.168.0.100"
@@ -178,6 +182,19 @@ case $i in
     EVICT_GENS=${i#*=}
     ;;
 
+    -pr|--prio)
+    PRIO=yes
+    EVICT_NPRIO=2
+    ;;
+
+    -prt=*|--priotype=*)
+    PRIO_TYPE=${i#*=}
+    ;;
+
+    -lthr=*|--lrubumpthr=*)
+    LRU_BUMP_THR=${i#*=}
+    ;;
+
     -se|--sampleepochs)
     SHEN_CFLAGS="$SHEN_CFLAGS -DEPOCH_SAMPLER"
     ;;
@@ -250,8 +267,6 @@ case $i in
     ;;
 
     -pfs|--pfsamples)
-    GDBFLAG2="--enable-gdb"
-    echo 0 | sudo tee /proc/sys/kernel/randomize_va_space #no ASLR
     SHEN_CFLAGS="$SHEN_CFLAGS -DFAULT_SAMPLER"
     ;;
 
@@ -361,9 +376,9 @@ if [[ $EDEN ]]; then
     # until deadline
     pushd ${SHENANGO_DIR}
     branch=$(git rev-parse --abbrev-ref HEAD)
-    if [[ $branch != "mcached" ]]; then
-        echo "ERROR! use only the mcached branch until the deadline"
-        exit 1
+    if [[ $branch != "mcached_on_synth" ]]; then
+        echo "ERROR! use only the mcached_on_synth branch until the deadline"
+        # exit 1
     fi
     popd
 
@@ -388,6 +403,16 @@ if [[ $EDEN ]]; then
         # because eviction-specific hints are defined in a header file 
         CFLAGS="$CFLAGS -D${EVICT_POLICY}_EVICTION"
         SHEN_CFLAGS="$SHEN_CFLAGS -D${EVICT_POLICY}_EVICTION"
+        SHEN_CFLAGS="$SHEN_CFLAGS -DLRU_EVICTION_BUMP_THR=${LRU_BUMP_THR}"
+    fi
+
+    # eviction priority type
+    if [[ $PRIO_TYPE ]]; then
+        if [[ $PRIO_TYPE != "LINEAR" ]] && [[ $PRIO_TYPE != "EXPONENTIAL" ]]; then
+            echo "ERROR! invalid custom evict priority type ${PRIO_TYPE}. Allowed: LINEAR, EXPONENTIAL"
+            exit 1
+        fi
+        SHEN_CFLAGS="$SHEN_CFLAGS -DEVPRIORITY_${PRIO_TYPE}"
     fi
 fi
 
@@ -435,6 +460,7 @@ if [[ $FORCE ]] && [[ $SHENANGO ]]; then
     if [[ $GDB ]];          then    OPTS="$OPTS GDB=1";                 fi
     if ! [[ $NO_STATS ]];   then    OPTS="$OPTS STATS_CORE=${SHENANGO_STATS_CORE}"; fi
     OPTS="$OPTS NUMA_NODE=${NUMA_NODE} EXCLUDE_CORES=${SHENANGO_EXCLUDE}"
+    SHEN_CFLAGS="$SHEN_CFLAGS -DNO_WORK_STEALING"   #not needed for memcached
     make all -j ${DEBUG} ${OPTS} PROVIDED_CFLAGS="""$SHEN_CFLAGS"""
     popd
 fi
@@ -447,9 +473,10 @@ if [[ $FORCE ]]; then
     if [[ $NO_DIRTY ]]; then NOD_OPT="--enable-nodirty";    fi
     if [ "$EVICT_POLICY" == "SC" ];     then EVP_OPT="--enable-sc";      fi
     if [ "$EVICT_POLICY" == "LRU" ];    then EVP_OPT="--enable-lru";     fi
+    if [[ $PRIO ]];     then EVPR_OPT="--enable-prio";     fi
     
     ./configure --with-shenango=${SHENANGO_DIR} ${EDEN_OPT} \
-        ${EVP_OPT} ${HINTS_OPT} ${NOD_OPT} ${GDBFLAG2}
+        ${EVP_OPT} ${EVPR_OPT} ${HINTS_OPT} ${NOD_OPT} ${GDBFLAG2}
     make clean
     make -j
 fi
@@ -477,6 +504,9 @@ save_cfg "lmemper"      $LMEMPER
 save_cfg "evictbatch"   $EVICT_BATCH_SIZE
 save_cfg "evictpolicy"  $EVICT_POLICY
 save_cfg "evictgens"    $EVICT_GENS
+save_cfg "evictprio"    $PRIO
+save_cfg "evpriotype"   $PRIO_TYPE
+save_cfg "lrubumpthr"   $LRU_BUMP_THR
 save_cfg "nodirty"      $NO_DIRTY
 save_cfg "desc"         $README
 echo -e "$CFGSTORE" > settings
@@ -504,7 +534,9 @@ rmem_backend ${BACKEND}
 rmem_local_memory ${LMEM}
 rmem_evict_threshold ${EVICT_THRESHOLD}
 rmem_evict_batch_size ${EVICT_BATCH_SIZE}
-rmem_evict_ngens ${EVICT_GENS}"""
+rmem_evict_ngens ${EVICT_GENS}
+rmem_evict_nprio ${EVICT_NPRIO}
+rmem_fsampler_rate 10000"""
 echo "$shenango_cfg" > $CFGFILE
 popd
 

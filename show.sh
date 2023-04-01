@@ -102,6 +102,18 @@ case $i in
     EVPOL="${i#*=}"
     ;;
 
+    -evpr=*|--evprio=*)
+    EVPRIO="${i#*=}"
+    ;;
+
+    --evprtype=*)
+    EVPRTYPE="${i#*=}"
+    ;;
+
+    --lruthr=*)
+    LRU_THR="${i#*=}"
+    ;;
+
     -evb=*|--evbatch=*)
     EVBATCH="${i#*=}"
     ;;
@@ -166,13 +178,18 @@ for exp in $LS_CMD; do
     evictbs=$(cat $exp/settings | grep "evictbatch:" | awk -F: '{ print $2 }')
     evictpol=$(cat $exp/settings | grep "evictpolicy:" | awk -F: '{ print $2 }')
     evictgens=$(cat $exp/settings | grep "evictgens:" | awk -F: '{ print $2 }')
+    evictprio=$(cat $exp/settings | grep "evictprio:" | awk -F: '{ print $2 }')
+    evprtype=$(cat $exp/settings | grep "evpriotype:" | awk -F: '{ print $2 }')
+    lrubumpthr=$(cat $exp/settings | grep "lrubumpthr:" | awk -F: '{ print $2 }')
     desc=$(cat $exp/settings | grep "desc:" | awk -F: '{ print $2 }')
     sched=${sched:-none}
     backend=${backend:-none}
     rmem=${rmem:-none}
     evictpol=${evictpol:-NONE}
+    evictprio=${evictprio:-no}
     esamples=${esamples:-1}
     nodirty=${nodirty:-0}
+    evprtype=${evprtype:-NONE}
 
     # apply filters
     if [[ $THREADS ]] && [ "$THREADS" != "$threads" ];      then    continue;   fi
@@ -184,7 +201,10 @@ for exp in $LS_CMD; do
     if [[ $ZIPFS ]] && [ "$ZIPFS" != "$zipfs" ];            then    continue;   fi
     if [[ $NODIRTY ]] && [ "$NODIRTY" != "$nodirty" ];      then    continue;   fi
     if [[ $EVPOL ]] && [ "$EVPOL" != "$evictpol" ];         then    continue;   fi
+    if [[ $EVPRIO ]] && [ "$EVPRIO" != "$evictprio" ];      then    continue;   fi
+    if [[ $EVPRTYPE ]] && [ "$EVPRTYPE" != "$evprtype" ];   then    continue;   fi
     if [[ $EVBATCH ]] && [ "$EVBATCH" != "$evictbs" ];      then    continue;   fi
+    if [[ $LRU_THR ]] && [ "$LRU_THR" != "$lrubumpthr" ];   then    continue;   fi
     if [[ $DESC ]] && [[ "$desc" != "$DESC"  ]];            then    continue;   fi
 
     if [ -z "$BASIC" ]; then
@@ -264,6 +284,7 @@ for exp in $LS_CMD; do
             faultswp=$(csv_column_mean "$edenout" "faults_wp")
             faultszp=$(csv_column_mean "$edenout" "faults_zp")
             faults=$(csv_column_mean "$edenout" "faults")
+            faultsp0=$(csv_column_mean "$edenout" "faults_p0")
             kfaultsr=$(csv_column_mean "$edenout" "faults_r_h")
             kfaultsw=$(csv_column_mean "$edenout" "faults_w_h")
             kfaultswp=$(csv_column_mean "$edenout" "faults_wp_h")
@@ -349,6 +370,15 @@ for exp in $LS_CMD; do
         iokoffered=$(csv_column_mean "$iokout" "RX_PULLED")
         iokachieved=$(csv_column_mean "$iokout" "TX_PULLED")
         iokcpu=$(csv_column_mean "$iokout" "IOK_SATURATION")
+
+        # KERNEL
+        cpusarout=${exp}/cpu_sar_parsed_s${sampleid}
+        cpusarin=${exp}/cpu.sar
+        if [ ! -f $cpusarout ] && [ -f $cpusarin ] && [[ $rstart ]] && [[ $rend ]]; then 
+            bash ${ROOT_SCRIPTS_DIR}/parse_sar.sh -sf=${exp}/cpu.sar -sc="%idle" \
+                --start=${rstart} --end=${rend} -of=${cpusarout}
+        fi
+        kernel_idle_per=$(csv_column_mean "$cpusarout" "%idle")
     fi
 
     # write
@@ -362,6 +392,9 @@ for exp in $LS_CMD; do
     HEADER="$HEADER,ZipfS";         LINE="$LINE,${zipfs}";
     HEADER="$HEADER,EvB";           LINE="$LINE,${evictbs}";
     HEADER="$HEADER,EvP";           LINE="$LINE,${evictpol}";
+    HEADER="$HEADER,EvPrio";        LINE="$LINE,${evictprio}";
+    HEADER="$HEADER,EvPrType";      LINE="$LINE,${evprtype}";
+    HEADER="$HEADER,LRUBumpThr";    LINE="$LINE,${lrubumpthr}";
     # HEADER="$HEADER,EvG";           LINE="$LINE,${evictgens}";
     HEADER="$HEADER,NoDirty";       LINE="$LINE,${nodirty}";
     # HEADER="$HEADER,Warmup";        LINE="$LINE,${warmup}";
@@ -382,6 +415,7 @@ for exp in $LS_CMD; do
         HEADER="$HEADER,FaultsW";       LINE="$LINE,${faultsw}";
         HEADER="$HEADER,FaultsWP";      LINE="$LINE,${faultswp}";
         HEADER="$HEADER,FaultsZP";      LINE="$LINE,${faultszp}";
+        HEADER="$HEADER,FaultsP0";      LINE="$LINE,${faultsp0}";
         HEADER="$HEADER,KFaults";       LINE="$LINE,${kfaults}";
         HEADER="$HEADER,KFaultsR";      LINE="$LINE,${kfaultsr}";
         HEADER="$HEADER,KFaultsW";      LINE="$LINE,${kfaultsw}";
@@ -390,7 +424,8 @@ for exp in $LS_CMD; do
         HEADER="$HEADER,KEvicts";       LINE="$LINE,${kevicts}";
         HEADER="$HEADER,EvPopped";      LINE="$LINE,${evpopped}";
         HEADER="$HEADER,AnnotHits";     LINE="$LINE,${annothits}";
-        HEADER="$HEADER,HitR";          LINE="$LINE,$(percentage "$((iokachieved-faults))" "$iokachieved")";
+        HEADER="$HEADER,HitR";          LINE="$LINE,$(percentage "$((2*iokachieved-netreads))" "$((2*iokachieved))")";
+        HEADER="$HEADER,PFCost";        LINE="$LINE,$(echo $iokachieved $faults $cores | awk '{print ($3*1000000 - $1*0.8)/$2 }')";
         HEADER="$HEADER,Mallocd";       LINE="$LINE,${mallocd}";
 
         HEADER="$HEADER,NetReads";      LINE="$LINE,${netreads}";
@@ -409,6 +444,7 @@ for exp in $LS_CMD; do
         # Shenango
         HEADER="$HEADER,Idle(ms)";      LINE="$LINE,$((sched_idle_cycles/(cores*2194*1000)))";
         HEADER="$HEADER,BkIdle(ms)";    LINE="$LINE,$((bkendwait/(cores*2194*1000)))";
+        HEADER="$HEADER,KIdle(%)";      LINE="$LINE,$((kernel_idle_per))";
         HEADER="$HEADER,Rtime(ms)";     LINE="$LINE,$((sched_time_cycles/(cores*2194*1000)))";
         HEADER="$HEADER,Ptime(ms)";     LINE="$LINE,$((app_time_cycles/(cores*2194*1000)))";
         HEADER="$HEADER,Rescheds";      LINE="$LINE,${rescheds}";
@@ -421,6 +457,7 @@ for exp in $LS_CMD; do
         HEADER="$HEADER,IOKOff";        LINE="$LINE,${iokoffered}";
         HEADER="$HEADER,IOKAch";        LINE="$LINE,${iokachieved}";
         HEADER="$HEADER,IOKCPU";       LINE="$LINE,${iokcpu}";
+        
     fi
 
     HEADER="$HEADER,Desc";          LINE="$LINE,${desc:0:30}";    

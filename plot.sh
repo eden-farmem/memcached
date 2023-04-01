@@ -89,25 +89,36 @@ if [ "$PLOTID" == "1" ]; then
     NODIRTY=1
 
     ## data
-    # for runcfg in "eden" "eden+evb" "eden+evb+nbh" "eden+evb+nbh+sc"; do
-    # for runcfg in "fswap" "eden-basic" "eden"; do
-    for runcfg in "fswap" "eden-bh" "eden"; do
+    plotgroup="fswap-eden"
+    for runcfg in "fswap" "eden+bh" "eden" "eden+bh+sc" "eden+sc"; do
+    # plotgroup="eden-prio"
+    # for runcfg in  "eden+bh+noprio" "eden+bh+prio" "eden+bh+sc+prio" "eden+bh+prio2" "eden+bh+sc+prio2" "eden+bh+prio3" "eden+bh+sc+prio3"; do
+    # plotgroup="eden-lru"
+    # for runcfg in "eden+bh+noprio" "eden+bh+lru0.2" "eden+bh+lru0.4" "eden+bh+lru0.6" "eden+bh+lru0.8"; do
         LABEL=
         LS=
         CMI=
 
         case $runcfg in
-        # "fswap")              pattern="12-06"; rmem=fastswap; backend=rdma; cores=5; zipfs=1; desc="herobaseline"; LS=solid; CMI=1; LABEL="Fastswap";;
-        "fswap")                pattern="12-13"; rmem=fastswap; backend=rdma; cores=5; zipfs=1; desc="hero"; LS=solid; CMI=1; LABEL="Fastswap";;
-        # "eden")               pattern="12-04"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=NONE; evb=1; desc="smallhero";;
-        # "eden+evb")           pattern="12-04"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=NONE; evb=8; desc="smallhero";;
-        # "eden+evb+nbh")       pattern="12-04"; rmem=eden; backend=rdma; cores=5; zipfs=1; evp=NONE; evb=8; desc="smallhero";;
-        # "eden+evb+nbh+sc")    pattern="12-04"; rmem=eden; backend=rdma; cores=5; zipfs=1; evp=SC; evb=8; desc="smallhero";;
-        # "eden-basic")           pattern="12-11"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=NONE; evb=1; desc="hero"; LS=dashed; CMI=0; LABEL="Eden(No-Opt)";;
-        "eden-evb")             pattern="12-12"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=NONE; evb=32; desc="hero"; LS=dashed; CMI=0; LABEL="Eden(No-SC)";;
-        "eden-bh")              pattern="12-1[23]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=SC; evb=32; desc="hero"; LS=solid; CMI=1; LABEL="Eden(Blocking)";;
-        "eden")                 pattern="12-1[23]"; rmem=eden; backend=rdma; cores=5; zipfs=1; evp=SC; evb=32; desc="hero"; LS=solid; CMI=1; LABEL="Eden";;
-        # "eden+nbh")             pattern="12-11"; rmem=eden; backend=rdma; cores=5; zipfs=1; evp=SC; evb=32; desc="hero";;
+        # eden vs fastswap
+        "fswap")                pattern="03-25"; rmem=fastswap; backend=rdma; cores=5; zipfs=1; desc="newhint"; LS=solid; CMI=1; LABEL="Fastswap";;
+        "eden+bh")              pattern="03-28-0"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=NONE; evprio=no; evb=32; desc="fullruns"; LS=dashed; CMI=0; LABEL="Eden(BH)";;
+        "eden")                 pattern="03-28-0"; rmem=eden; backend=rdma; cores=5; zipfs=1; evp=NONE; evprio=no; evb=32; desc="fullruns"; LS=solid; CMI=1; LABEL="Eden";;
+        "eden+bh+sc")           pattern="03-28-0"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=SC; evprio=no; evb=32; desc="fullruns"; LS=dashed; CMI=0; LABEL="Eden(BH+SC)";;
+        "eden+sc")              pattern="03-28-0"; rmem=eden; backend=rdma; cores=5; zipfs=1; evp=SC; evprio=no; evb=32; desc="fullruns"; LS=solid; CMI=0; LABEL="Eden(SC)";;
+        # reclaim prio
+        "eden+bh+noprio")       pattern="03-28-0"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=NONE; evprio=no; evb=32; desc="fullruns"; LS=dashed; CMI=1; LABEL="NoPrio";;
+        "eden+bh+prio")         pattern="03-29-0[2-7]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=NONE; evprio=yes; evprtype=NONE; evb=32; desc="testprio"; LS=dashed; CMI=0; LABEL="Prio";;
+        "eden+bh+sc+prio")      pattern="03-29-0[2-7]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=SC; evprio=yes; evprtype=NONE; evb=32; desc="testprio"; LS=solid; CMI=1; LABEL="Prio+SC";;
+        "eden+bh+prio2")        pattern="03-29-0[2-7]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=NONE; evprio=yes; evprtype=LINEAR; evb=32; desc="testprio"; LS=dashed; CMI=0; LABEL="Prio2";;
+        "eden+bh+sc+prio2")     pattern="03-29-0[2-7]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=SC; evprio=yes; evprtype=LINEAR; evb=32; desc="testprio"; LS=solid; CMI=1; LABEL="Prio2+SC";;
+        "eden+bh+prio3")        pattern="03-29-0[2-7]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=NONE; evprio=yes; evprtype=EXPONENTIAL; evb=32; desc="testprio"; LS=dashed; CMI=0; LABEL="Prio3+SC";;
+        "eden+bh+sc+prio3")     pattern="03-29-0[2-7]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=SC; evprio=yes; evprtype=EXPONENTIAL; evb=32; desc="testprio"; LS=solid; CMI=1; LABEL="Prio3+SC";;
+        # reclaim lru
+        "eden+bh+lru0.2")       pattern="03-29-1[4-8]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=LRU; evprio=no; evprtype=; lruthr=0.2; evb=32; desc="lruthr"; LS=dashed; CMI=1; LABEL="LRU0.2";;
+        "eden+bh+lru0.4")       pattern="03-29-1[4-8]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=LRU; evprio=no; evprtype=; lruthr=0.4; evb=32; desc="lruthr"; LS=dotted; CMI=1; LABEL="LRU0.4";;
+        "eden+bh+lru0.6")       pattern="03-29-1[4-8]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=LRU; evprio=no; evprtype=; lruthr=0.6; evb=32; desc="lruthr"; LS=dashdot; CMI=1; LABEL="LRU0.6";;
+        "eden+bh+lru0.8")       pattern="03-29-1[4-8]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=LRU; evprio=no; evprtype=; lruthr=0.8; evb=32; desc="lruthr"; LS=solid; CMI=1; LABEL="LRU0.8";;
         *)                      echo "Unknown config"; exit;;
         esac
 
@@ -115,31 +126,32 @@ if [ "$PLOTID" == "1" ]; then
         cfg=be${bkend}_cores${cores}_zs${zipfs}_nod${NODIRTY}
         label=$runcfg
         datafile=$plotdir/data_${LABEL}
-        descopt=
-        evbopt=
-        rmemopt=
-        evpopt=
-        nodopt=
-        if [[ $desc ]]; then descopt="-d=$desc";    fi
-        if [[ $evb ]];  then evbopt="-evb=$evb";    fi
-        if [[ $evp ]];  then evpopt="-evp=$evp";    fi
-        if [[ $rmem ]];  then rmemopt="-r=$rmem";   fi
-        if [[ $NODIRTY ]]; then nodopt="-nod=${NODIRTY}"; fi
+        opts=
+        if [[ $desc ]]; then opts="$opts -d=$desc";    fi
+        if [[ $evb ]];  then opts="$opts -evb=$evb";    fi
+        if [[ $evp ]];  then opts="$opts -evp=$evp";    fi
+        if [[ $evprio ]]; then opts="$opts --evprio=$evprio";    fi
+        if [[ $evprtype ]]; then opts="$opts --evprtype=$evprtype";    fi
+        if [[ $lruthr ]]; then opts="$opts --lruthr=$lruthr";    fi
+        if [[ $rmem ]];  then opts="$opts -r=$rmem";   fi
+        if [[ $NODIRTY ]]; then opts="$opts -nod=${NODIRTY}"; fi
         if [[ $FORCE ]] || [ ! -f "$datafile" ]; then
-            echo "LMem%,Xput,XputErr,Faults,FaultsErr,HitR,Count,System,Backend,EvP,EvB,CPU,Zipfs" > $datafile
+            echo "LMem%,Xput,XputErr,Faults,FaultsErr,NetReads,NetReadsErr,HitR,Count,System,Backend,EvP,EvB,CPU,Zipfs" > $datafile
             for memp in `seq 10 10 100`; do
                 tmpfile=${TMP_FILE_PFX}data
                 rm -f ${tmpfile}
                 bash ${SCRIPT_DIR}/show.sh -cs="$pattern" -be=$backend -c=$cores -of=$tmpfile   \
-                    -zs=${zipfs} -be=${bkend} ${descopt} ${evbopt} ${rmemopt} ${evpopt} ${nodopt} -lmp=${memp}
+                    -zs=${zipfs} -be=${bkend} ${opts} -lmp=${memp}
                 cat $tmpfile
                 xmean=$(csv_column_mean $tmpfile "Achieved")
                 xstd=$(csv_column_stdev $tmpfile "Achieved")
                 xnum=$(csv_column_count $tmpfile "Achieved")
                 fmean=$(csv_column_mean $tmpfile "Faults")
                 fstd=$(csv_column_stdev $tmpfile "Faults")
+                netrmean=$(csv_column_mean $tmpfile "NetReads")
+                netrstd=$(csv_column_stdev $tmpfile "NetReads")
                 hitrmean=$(csv_column_mean $tmpfile "HitR")
-                echo ${memp},${xmean},${xstd},${fmean},${fstd},${hitrmean},${xnum},${rmem},${bkend},${evp},${evb},${cores},${zipfs} >> ${datafile}
+                echo ${memp},${xmean},${xstd},${fmean},${fstd},${netrmean},${netrstd},${hitrmean},${xnum},${rmem},${bkend},${evp},${evb},${cores},${zipfs} >> ${datafile}
             done
 
             # compute and add normalized throughput column
@@ -163,9 +175,10 @@ if [ "$PLOTID" == "1" ]; then
     #plot xput
     XPUTCOL="Xput"
     XPUTERR="XputErr"
-    YLIMS="--ymin 0 --ymax 3.5"
+    YLIMS="--ymin 0 --ymax 4.5"
     YLABEL="MOPS"
     YMUL="--ymul 1e-6"
+    XLIMS="--xmin 0 --xmax 110"
     if [[ $NORMALIZE ]]; then
         XPUTCOL="XputNorm"
         XPUTERR="XputErrNorm"
@@ -177,19 +190,19 @@ if [ "$PLOTID" == "1" ]; then
     if [[ $FORCE_PLOTS ]] || [ ! -f "$plotname" ]; then
         python3 ${ROOTDIR}/scripts/plot.py ${plots}                         \
             -yce ${XPUTCOL} ${XPUTERR} -yl "${YLABEL}" ${YMUL} ${YLIMS}     \
-            -xc "LMem%" -xl "Local Memory (%)"                              \
-            --size 4.5 3 -fs 12 -of $PLOTEXT -o $plotname
+            -xc "LMem%" -xl "Local Memory (%)" ${XLIMS}                     \
+            --size 4.5 3 -fs 11 -of $PLOTEXT -o $plotname
     fi
     files="$files $plotname"
 
     #plot faults
-    YLIMS="--ymin 0 --ymax $((100*cores))"
-    plotname=${plotdir}/mcached_faults.${PLOTEXT}
+    YLIMS="--ymin 0 --ymax $((125*cores))"
+    plotname=${plotdir}/mcached_netreads.${PLOTEXT}
     if [[ $FORCE_PLOTS ]] || [ ! -f "$plotname" ]; then
         python3 ${ROOTDIR}/scripts/plot.py ${plots}                     \
-            -yce "Faults" "FaultsErr" -yl "KOPS" --ymul 1e-3 ${YLIMS}   \
-            -xc "LMem%" -xl "Local Mem (%)"                             \
-            --size 4.5 3 -fs 12 -of $PLOTEXT -o $plotname
+            -yce "NetReads" "NetReadsErr" -yl "Remote Page Fetches(KOPS)" --ymul 1e-3 ${YLIMS}   \
+            -xc "LMem%" -xl "Local Mem (%)" ${XLIMS}                    \
+            --size 4.5 3 -fs 11 -of $PLOTEXT -o $plotname
     fi
     files="$files $plotname"
 
@@ -199,13 +212,13 @@ if [ "$PLOTID" == "1" ]; then
     if [[ $FORCE_PLOTS ]] || [ ! -f "$plotname" ]; then
         python3 ${ROOTDIR}/scripts/plot.py ${plots}                     \
             -yc "HitR" -yl "Hit Ratio %" ${YLIMS}                       \
-            -xc "LMem%" -xl "Local Mem (%)"                             \
-            --size 4.5 3 -fs 12 -of $PLOTEXT -o $plotname
+            -xc "LMem%" -xl "Local Mem (%)" ${XLIMS}                    \
+            --size 4.5 3 -fs 11 -of $PLOTEXT -o $plotname
     fi
     files="$files $plotname"
 
     # Combine
-    plotname=${plotdir}/${cfg}.$PLOTEXT
+    plotname=${plotdir}/memcached_all_${plotgroup}.$PLOTEXT
     montage -tile 3x0 -geometry +5+5 -border 5 $files ${plotname}
     display ${plotname} &
 fi

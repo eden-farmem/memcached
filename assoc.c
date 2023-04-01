@@ -166,6 +166,7 @@ item *assoc_find(const char *key, const size_t nkey, const uint32_t hv) {
     item *it;
     unsigned int oldbucket;
     uint32_t idx;
+    void *it_start, *it_end, *it_key;
 
 #ifdef RECORD_PAGE_ACCESS
     /* recording code */
@@ -187,7 +188,7 @@ item *assoc_find(const char *key, const size_t nkey, const uint32_t hv) {
         //     (unsigned long) (&primary_hashtable[idx]) & ~(4096 - 1));
         // record(buf);
 #endif
-        possible_read_fault_on(&primary_hashtable[idx]);
+        hint_read_fault(&primary_hashtable[idx]);
         it = primary_hashtable[idx];
     }
 
@@ -199,9 +200,24 @@ item *assoc_find(const char *key, const size_t nkey, const uint32_t hv) {
             (unsigned long) (&it->nkey) & ~(4096 - 1));
         record(buf);
 #endif
-        possible_read_fault_on(&it->nkey);
+
+/* set low priority for item faults */
+#ifdef SET_PRIORITY
+#define hint_item_fault(addr) hint_read_fault_prio(addr, 1)
+#else
+#define hint_item_fault(addr) hint_read_fault(addr)
+#endif
+
+        hint_item_fault(&it->nkey);
         if (nkey == it->nkey) {
-            possible_read_fault_on(ITEM_key(it));
+            /* making sure we have the entire item even if it spans two pages */
+            it_start = it;
+            it_key = &it->nkey;
+            it_end = ITEM_data(it) + it->nbytes - 4;
+            #define PG_OFST(addr) (((unsigned long) addr) & 0xFFF)
+            if (PG_OFST(it_start) > PG_OFST(it_key)) hint_item_fault(it_start);
+            if (PG_OFST(it_end) < PG_OFST(it_key))   hint_item_fault(it_end);
+            // hint_item_fault(ITEM_data(it) + it->nbytes - 4);
             if (memcmp(key, ITEM_key(it), nkey) == 0) {
                 ret = it;
                 break;

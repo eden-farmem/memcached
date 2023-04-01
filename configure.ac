@@ -254,35 +254,42 @@ then
 fi
 
 AC_ARG_ENABLE(eden,
-  [AS_HELP_STRING([--enable-eden],[build with symbols])])
+  [AS_HELP_STRING([--enable-eden],[build with remote memory API])])
 if test "x$enable_eden" = "xyes"
 then
     CFLAGS="-DEDEN -DREMOTE_MEMORY $CFLAGS"
 fi
 
 AC_ARG_ENABLE(hints,
-  [AS_HELP_STRING([--enable-hints],[build with symbols])])
+  [AS_HELP_STRING([--enable-hints],[build with hints])])
 if test "x$enable_hints" = "xyes"
 then
     CFLAGS="-DEDEN -DREMOTE_MEMORY_HINTS $CFLAGS"
 fi
 
 AC_ARG_ENABLE(sc,
-  [AS_HELP_STRING([--enable-sc],[build with symbols])])
+  [AS_HELP_STRING([--enable-sc],[build with SC hints])])
 if test "x$enable_sc" = "xyes"
 then
     CFLAGS="-DSC_EVICTION $CFLAGS"
 fi
 
 AC_ARG_ENABLE(lru,
-  [AS_HELP_STRING([--enable-lru],[build with symbols])])
+  [AS_HELP_STRING([--enable-lru],[build with LRU hints])])
 if test "x$enable_lru" = "xyes"
 then
     CFLAGS="-DLRU_EVICTION $CFLAGS"
 fi
 
+AC_ARG_ENABLE(prio,
+  [AS_HELP_STRING([--enable-prio],[build with hint priority])])
+if test "x$enable_prio" = "xyes"
+then
+    CFLAGS="-DSET_PRIORITY $CFLAGS"
+fi
+
 AC_ARG_ENABLE(nodirty,
-  [AS_HELP_STRING([--enable-nodirty],[build with symbols])])
+  [AS_HELP_STRING([--enable-nodirty],[build with no-dirty changes])])
 if test "x$enable_nodirty" = "xyes"
 then
     CFLAGS="-DNO_DIRTY_ON_GET $CFLAGS"
@@ -340,7 +347,7 @@ AC_CACHE_CHECK([for shenango directory], ac_cv_shenango_dir, [
 ])
   fi
 ])
-LIBS="-lruntime -lrmem -lnet -lbase -lrdmacm -libverbs -lm $LIBS"
+LIBS="-lruntime -lrmem -lnet -lbase -lrdmacm -libverbs -lm -ldl $LIBS"
 if test $ac_cv_shenango_dir != "(system)"; then
   if test -d "$ac_cv_shenango_dir/lib" ; then
     LDFLAGS="-L$ac_cv_shenango_dir/lib -no-pie -T $ac_cv_shenango_dir/base/base.ld $LDFLAGS"
