@@ -376,9 +376,9 @@ if [[ $EDEN ]]; then
     # until deadline
     pushd ${SHENANGO_DIR}
     branch=$(git rev-parse --abbrev-ref HEAD)
-    if [[ $branch != "mcached_on_synth" ]]; then
-        echo "ERROR! use only the mcached_on_synth branch until the deadline"
-        # exit 1
+    if [[ $branch != "mcached" ]]; then
+        echo "ERROR! use only the mcached branch until the deadline"
+        exit 1
     fi
     popd
 

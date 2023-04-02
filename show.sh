@@ -13,7 +13,6 @@ usage="\n
 -lm, --lmem \t\t results filter: == localmem\n
 -lmp, --lmemper \t results filter: == localmemper\n
 -be, --backend \t results filter: == backend\n
--pf, --pgfaults \t results filter: == pgfaults\n
 -zs, --zipfs \t\t results filter: == zipfs\n
 -d, --desc \t\t results filter: contains desc\n
 -f, --force \t\t remove any cached data and parse from scratch\n
@@ -84,10 +83,6 @@ case $i in
 
     -be=*|--backend=*)
     BACKEND="${i#*=}"
-    ;;
-
-    -pf=*|--pgfaults=*)
-    PGFAULTS="${i#*=}"
     ;;
 
     -zs=*|--zipfs=*)

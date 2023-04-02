@@ -194,8 +194,8 @@ run_vary_lmem() {
     
     # run
     configure_max_local_mem "$kind" "$cores"
-    # for memp in `seq 10 10 100`; do
-    for memp in 10; do
+    for memp in `seq 10 10 100`; do
+    # for memp in 10; do
         check_for_stop
 
         # determine load
@@ -227,7 +227,7 @@ nod=1       # set nodirty
 for zs in 1; do
     for c in $CORES; do
         for nod in 1; do 
-            desc="newhints"
+            desc="paper"
             # run_vary_lmem "uthr"    "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod" "$prio" "$prtype" "$lruthr"
             # run_vary_lmem "eden-nh" "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod" "$prio" "$prtype" "$lruthr"
             # run_vary_lmem "eden-bh" "local" "$c" "$zs" "$ebs" "$evp" "$evg" "$nod" "$prio" "$prtype" "$lruthr"
@@ -236,14 +236,15 @@ for zs in 1; do
             # run_vary_lmem "eden-bh" "local" "$c" "$zs" "8"    "SC"   "$evg" "$nod" "$prio" "$prtype" "$lruthr"
             # run_vary_lmem "eden"    "local" "$c" "$zs" "8"    "SC"   "$evg" "$nod" "$prio" "$prtype" "$lruthr"
 
-            # best runs
+            ## best runs
+            # for i in 1 2 3 4 5; do
+            # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "32"   "SC"   "$evg" "$nod" ""      "$prtype" "$lruthr"
             # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "32"   "SC"   "$evg" "$nod" "$prio" "$prtype" "$lruthr"
+            # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "32"   "SC"   "$evg" "$nod" ""      "$prtype" "$lruthr"
             # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "32"   "SC"   "$evg" "$nod" "$prio" "$prtype" "$lruthr"
-            # run_vary_lmem "eden-bh" "rdma"  "$c" "$zs" "32"   "NONE" "$evg" "$nod" "$prio" "$prtype" "$lruthr"
-            # run_vary_lmem "eden"    "rdma"  "$c" "$zs" "32"   "NONE" "$evg" "$nod" "$prio" "$prtype" "$lruthr"
+            # done
 
             ## prio testing
-            # for rmem in "eden"; do
             # for rmem in "eden-bh" "eden"; do
             # run_vary_lmem "$rmem"   "rdma"  "$c" "$zs" "32"   "NONE" "$evg" "$nod" ""      "$prtype"     "$lruthr"
             # run_vary_lmem "$rmem"   "rdma"  "$c" "$zs" "32"   "SC"   "$evg" "$nod" ""      "$prtype"     "$lruthr"
