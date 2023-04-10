@@ -90,11 +90,7 @@ if [ "$PLOTID" == "1" ]; then
 
     ## data
     plotgroup="fswap-eden"
-    for runcfg in "fswap" "eden+bh" "eden" "eden+bh+sc" "eden+sc"; do
-    # plotgroup="eden-prio"
-    # for runcfg in  "eden+bh+noprio" "eden+bh+prio" "eden+bh+sc+prio" "eden+bh+prio2" "eden+bh+sc+prio2" "eden+bh+prio3" "eden+bh+sc+prio3"; do
-    # plotgroup="eden-lru"
-    # for runcfg in "eden+bh+noprio" "eden+bh+lru0.2" "eden+bh+lru0.4" "eden+bh+lru0.6" "eden+bh+lru0.8"; do
+    for runcfg in "fswap" "eden+bh" "eden" "eden+prio"; do
         LABEL=
         LS=
         CMI=
@@ -102,23 +98,9 @@ if [ "$PLOTID" == "1" ]; then
         case $runcfg in
         # eden vs fastswap
         "fswap")                pattern="03-25"; rmem=fastswap; backend=rdma; cores=5; zipfs=1; desc="newhint"; LS=solid; CMI=1; LABEL="Fastswap";;
-        "eden+bh")              pattern="03-28-0"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=NONE; evprio=no; evb=32; desc="fullruns"; LS=dashed; CMI=0; LABEL="Eden(BH)";;
-        "eden")                 pattern="03-28-0"; rmem=eden; backend=rdma; cores=5; zipfs=1; evp=NONE; evprio=no; evb=32; desc="fullruns"; LS=solid; CMI=1; LABEL="Eden";;
-        "eden+bh+sc")           pattern="03-28-0"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=SC; evprio=no; evb=32; desc="fullruns"; LS=dashed; CMI=0; LABEL="Eden(BH+SC)";;
-        "eden+sc")              pattern="03-28-0"; rmem=eden; backend=rdma; cores=5; zipfs=1; evp=SC; evprio=no; evb=32; desc="fullruns"; LS=solid; CMI=0; LABEL="Eden(SC)";;
-        # reclaim prio
-        "eden+bh+noprio")       pattern="03-28-0"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=NONE; evprio=no; evb=32; desc="fullruns"; LS=dashed; CMI=1; LABEL="NoPrio";;
-        "eden+bh+prio")         pattern="03-29-0[2-7]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=NONE; evprio=yes; evprtype=NONE; evb=32; desc="testprio"; LS=dashed; CMI=0; LABEL="Prio";;
-        "eden+bh+sc+prio")      pattern="03-29-0[2-7]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=SC; evprio=yes; evprtype=NONE; evb=32; desc="testprio"; LS=solid; CMI=1; LABEL="Prio+SC";;
-        "eden+bh+prio2")        pattern="03-29-0[2-7]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=NONE; evprio=yes; evprtype=LINEAR; evb=32; desc="testprio"; LS=dashed; CMI=0; LABEL="Prio2";;
-        "eden+bh+sc+prio2")     pattern="03-29-0[2-7]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=SC; evprio=yes; evprtype=LINEAR; evb=32; desc="testprio"; LS=solid; CMI=1; LABEL="Prio2+SC";;
-        "eden+bh+prio3")        pattern="03-29-0[2-7]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=NONE; evprio=yes; evprtype=EXPONENTIAL; evb=32; desc="testprio"; LS=dashed; CMI=0; LABEL="Prio3+SC";;
-        "eden+bh+sc+prio3")     pattern="03-29-0[2-7]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=SC; evprio=yes; evprtype=EXPONENTIAL; evb=32; desc="testprio"; LS=solid; CMI=1; LABEL="Prio3+SC";;
-        # reclaim lru
-        "eden+bh+lru0.2")       pattern="03-29-1[4-8]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=LRU; evprio=no; evprtype=; lruthr=0.2; evb=32; desc="lruthr"; LS=dashed; CMI=1; LABEL="LRU0.2";;
-        "eden+bh+lru0.4")       pattern="03-29-1[4-8]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=LRU; evprio=no; evprtype=; lruthr=0.4; evb=32; desc="lruthr"; LS=dotted; CMI=1; LABEL="LRU0.4";;
-        "eden+bh+lru0.6")       pattern="03-29-1[4-8]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=LRU; evprio=no; evprtype=; lruthr=0.6; evb=32; desc="lruthr"; LS=dashdot; CMI=1; LABEL="LRU0.6";;
-        "eden+bh+lru0.8")       pattern="03-29-1[4-8]"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=LRU; evprio=no; evprtype=; lruthr=0.8; evb=32; desc="lruthr"; LS=solid; CMI=1; LABEL="LRU0.8";;
+        "eden+bh")              pattern="04-01"; rmem=eden-bh; backend=rdma; cores=5; zipfs=1; evp=SC; evprio=no; evb=32; desc="paper"; LS=dashed; CMI=0; LABEL="Eden(BH)";;
+        "eden")                 pattern="04-01"; rmem=eden; backend=rdma; cores=5; zipfs=1; evp=SC; evprio=no; evb=32; desc="paper"; LS=solid; CMI=1; LABEL="Eden";;
+        "eden+prio")            pattern="04-01"; rmem=eden; backend=rdma; cores=5; zipfs=1; evp=SC; evprio=yes; evb=32; desc="paper"; LS=dashed; CMI=0; LABEL="Eden(Prio)";;
         *)                      echo "Unknown config"; exit;;
         esac
 
@@ -182,7 +164,7 @@ if [ "$PLOTID" == "1" ]; then
     if [[ $NORMALIZE ]]; then
         XPUTCOL="XputNorm"
         XPUTERR="XputErrNorm"
-        YLIMS=
+        YLIMS="--ymin 0 --ymax 1.1"
         YLABEL="Normalized Throughput"
         YMUL=
     fi
@@ -196,7 +178,7 @@ if [ "$PLOTID" == "1" ]; then
     files="$files $plotname"
 
     #plot faults
-    YLIMS="--ymin 0 --ymax $((125*cores))"
+    YLIMS="--ymin 0 --ymax 850"
     plotname=${plotdir}/mcached_netreads.${PLOTEXT}
     if [[ $FORCE_PLOTS ]] || [ ! -f "$plotname" ]; then
         python3 ${ROOTDIR}/scripts/plot.py ${plots}                     \
@@ -378,7 +360,7 @@ if [ "$PLOTID" == "4" ]; then
     plotname=${plotdir}/bar.${PLOTEXT}
     python3 ${ROOTDIR}/scripts/plot.py -z bar -d bar        \
         -yc "Throughput" -yl "Tnroughput (MOPS)" -ym 1e-6   \
-        -xc "System" -xl " " --xstr                         \
+        -xc "System" -xl " " --xstr --ylog                  \
         --size 5 5 -fs 12 -of $PLOTEXT -o $plotname
     display ${plotname} &
 fi
