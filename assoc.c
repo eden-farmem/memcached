@@ -67,7 +67,11 @@ void assoc_init(const int hashtable_init) {
     if (hashtable_init) {
         hashpower = hashtable_init;
     }
+#ifdef EDEN
     primary_hashtable = rmalloc(hashsize(hashpower) * sizeof(void *));
+#else
+    primary_hashtable = calloc(hashsize(hashpower), sizeof(void *));
+#endif
     if (! primary_hashtable) {
         fprintf(stderr, "Failed to init hashtable.\n");
         exit(EXIT_FAILURE);
